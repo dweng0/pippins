@@ -7,3 +7,14 @@ staticfiles/
 .pytest_cache/
 *.egg-info/
 .DS_Store
+
+# Terraform
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/terraform.tfvars
+
+# Node / Cypress
+node_modules/
+cypress/screenshots/
+cypress/videos/

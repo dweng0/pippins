@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Tasks</h1>
+
+  {% if error %}
+    <div class="alert alert-danger" data-cy="task-error">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" class="d-flex gap-2 mb-4">
+    {% csrf_token %}
+    <input type="text" name="title" class="form-control" placeholder="New task" data-cy="task-input">
+    <button type="submit" class="btn btn-primary" data-cy="task-submit">Add</button>
+  </form>
+
+  <ul class="list-group" data-cy="task-list">
+    {% for task in tasks %}
+      <li class="list-group-item" data-cy="task-item">{{ task.title }}</li>
+    {% empty %}
+      <li class="list-group-item text-muted" data-cy="task-empty">No tasks yet.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

@@ -1,3 +1,5 @@
-from django.contrib import admin  # noqa: F401
+from django.contrib import admin
 
-# Register models here as they're added.
+from .models import Task
+
+admin.site.register(Task)
