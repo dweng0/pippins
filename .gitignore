@@ -21,3 +21,6 @@ cypress/videos/
 
 # StackCX brief (their material, keep local only)
 brief-*.pdf
+
+# Local handoff notes (private)
+handoff.md
