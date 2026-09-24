@@ -16,11 +16,6 @@ variable "key_pair_name" {
   default     = "stackcx-assessment"
 }
 
-variable "allowed_ssh_cidr" {
-  description = "CIDR allowed to SSH in — set to your own IP/32, never leave as 0.0.0.0/0"
-  type        = string
-}
-
 variable "app_repo_url" {
   description = "GitHub repo URL the instance pulls on boot"
   type        = string
