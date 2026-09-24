@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h1>Tasks</h1>
+  <h1 class="text-3xl font-bold mb-6">Tasks</h1>
 
   {% if error %}
-    <div class="alert alert-danger" data-cy="task-error">{{ error }}</div>
+    <div role="alert" class="alert alert-error mb-4" data-cy="task-error">{{ error }}</div>
   {% endif %}
 
-  <form method="post" class="d-flex gap-2 mb-4">
+  <form method="post" class="flex gap-2 mb-6">
     {% csrf_token %}
-    <input type="text" name="title" class="form-control" placeholder="New task" data-cy="task-input">
+    <input type="text" name="title" class="input input-bordered flex-1" placeholder="New task" data-cy="task-input">
     <button type="submit" class="btn btn-primary" data-cy="task-submit">Add</button>
   </form>
 
-  <ul class="list-group" data-cy="task-list">
+  <ul class="menu bg-base-100 rounded-box shadow" data-cy="task-list">
     {% for task in tasks %}
-      <li class="list-group-item" data-cy="task-item">{{ task.title }}</li>
+      <li data-cy="task-item"><span>{{ task.title }}</span></li>
     {% empty %}
-      <li class="list-group-item text-muted" data-cy="task-empty">No tasks yet.</li>
+      <li class="opacity-60" data-cy="task-empty"><span>No tasks yet.</span></li>
     {% endfor %}
   </ul>
 {% endblock %}

@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Build Tailwind + daisyUI CSS (standalone binary, no Node) before collectstatic
+RUN tailwindcss-extra -i assets/input.css -o static/css/app.css --minify
+
 RUN python manage.py collectstatic --noinput --settings=config.settings.prod || true
 
 EXPOSE 8000

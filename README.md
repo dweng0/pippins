@@ -13,4 +13,4 @@ docker compose exec web pytest
 ```
 
 ## Stack
-Django, PostgreSQL, Redis, Bootstrap 5 (CDN). Deployed to a single AWS EC2 free-tier instance via Docker Compose; DNS via Cloudflare.
+Django, PostgreSQL, Redis, Tailwind CSS 4 + daisyUI 5 (built with the standalone `tailwindcss-extra` CLI, no Node). Deployed to a single AWS EC2 free-tier instance via Docker Compose; DNS via Cloudflare.
