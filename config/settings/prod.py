@@ -1,0 +1,12 @@
+import os
+
+from .base import *  # noqa: F401,F403
+
+DEBUG = False
+ALLOWED_HOSTS = os.environ["DJANGO_ALLOWED_HOSTS"].split(",")
+
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_HSTS_SECONDS = 60 * 60 * 24 * 7
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
