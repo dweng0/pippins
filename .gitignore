@@ -18,3 +18,6 @@ infra/terraform.tfvars
 node_modules/
 cypress/screenshots/
 cypress/videos/
+
+# StackCX brief (their material, keep local only)
+brief-*.pdf
