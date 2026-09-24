@@ -22,7 +22,7 @@ jobs:
           script: |
             cd /home/ec2-user/app
             git pull
-            docker-compose up -d --build
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
   # Terraform apply is deliberately NOT wired into this pipeline.
   # Infra changes (instance size, security group rules, etc.) are rare and
