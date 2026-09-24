@@ -60,13 +60,17 @@ resource "aws_instance" "app" {
   key_name               = var.key_pair_name
   vpc_security_group_ids = [aws_security_group.app.id]
 
-  # Installs Docker + Compose, clones the repo, brings the stack up.
-  # Re-running `terraform apply` won't re-run this — it only fires on instance
-  # creation. Deploys after the first boot go through the GitHub Actions
-  # workflow (SSH + `git pull && docker compose up -d --build`), not Terraform.
+  # Installs Docker + Compose, swap, clones the repo, installs the pull-based deploy timer.
+  # Only fires on instance creation. Later deploys are done by that timer (infra/deploy.sh),
+  # not by Terraform or inbound SSH.
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
     app_repo_url = var.app_repo_url
   })
+
+  # user_data only runs on first boot; editing the template must not restart the box.
+  lifecycle {
+    ignore_changes = [user_data]
+  }
 
   tags = {
     Name = "stackcx-assessment"

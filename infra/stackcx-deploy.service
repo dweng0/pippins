@@ -1,0 +1,8 @@
+[Unit]
+Description=Deploy stackcx if CI is green on origin/main
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=ec2-user
+ExecStart=/usr/local/bin/stackcx-deploy.sh

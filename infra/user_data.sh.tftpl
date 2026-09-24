@@ -23,6 +23,11 @@ cd /home/ec2-user
 git clone ${app_repo_url} app
 chown -R ec2-user:ec2-user app
 
+install -m 755 app/infra/deploy.sh /usr/local/bin/stackcx-deploy.sh
+cp app/infra/stackcx-deploy.service app/infra/stackcx-deploy.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now stackcx-deploy.timer
+
 # .env is NOT in the repo (gitignored) — copy it up separately over SSH
 # before the first `docker compose up`, e.g.:
 #   scp .env ec2-user@<eip>:/home/ec2-user/app/.env

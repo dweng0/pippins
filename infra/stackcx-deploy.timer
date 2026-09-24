@@ -1,0 +1,9 @@
+[Unit]
+Description=Poll for a CI-green commit and deploy it
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+
+[Install]
+WantedBy=timers.target
