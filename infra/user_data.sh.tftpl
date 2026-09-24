@@ -28,6 +28,6 @@ cp app/infra/stackcx-deploy.service app/infra/stackcx-deploy.timer /etc/systemd/
 systemctl daemon-reload
 systemctl enable --now stackcx-deploy.timer
 
-# .env is NOT in the repo (gitignored) — copy it up separately over SSH
+# .env is NOT in the repo (gitignored) — copy it up separately (SSH over SSM, see infra/README.md)
 # before the first `docker compose up`, e.g.:
-#   scp .env ec2-user@<eip>:/home/ec2-user/app/.env
+#   scp prod.env stackcx:/home/ec2-user/app/.env

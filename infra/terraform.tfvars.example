@@ -1,2 +1,1 @@
-allowed_ssh_cidr = "YOUR_IP/32"   # find yours: curl -s ifconfig.me
-app_repo_url     = "https://github.com/<you>/<repo>.git"
+app_repo_url = "https://github.com/<you>/<repo>.git"
