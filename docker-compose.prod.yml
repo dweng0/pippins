@@ -19,3 +19,7 @@ services:
     ports: !override
       - "80:8000"
     restart: unless-stopped
+
+  # dev-only CSS watcher; prod serves the CSS built into the image
+  tailwind:
+    profiles: ["dev-only"]

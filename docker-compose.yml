@@ -40,5 +40,11 @@ services:
       redis:
         condition: service_started
 
+  tailwind:
+    build: .
+    command: tailwindcss-extra -i assets/input.css -o static/css/app.css --watch=always
+    volumes:
+      - .:/app
+
 volumes:
   postgres_data:
