@@ -2,14 +2,14 @@
 
 ## Hardware / hosting
 - Single AWS EC2 free-tier instance (provisioned via Terraform, see `infra/`)
-- Docker Compose runs web + Postgres + Redis on the one box
+- Docker Compose runs web + Postgres on the one box
 - Cloudflare proxy in front (DNS + TLS at the edge, Flexible mode); security group only allows 80/443 from Cloudflare ranges
 - No inbound SSH: access via AWS SSM Session Manager (instance role with `AmazonSSMManagedInstanceCore`)
 - Deploys: CI-gated pull via systemd timer on the box; `main` protected by a ruleset (PR + `test`/`e2e` required)
 
 ## Backend
 - Python 3.13, Django 6.1 (server-rendered monolith, no API/frontend split)
-- PostgreSQL (psycopg 3), Redis (django-redis), Celery
+- PostgreSQL (psycopg 3); sessions in Postgres (Redis dropped in #23: no volume, so deploys wiped sessions)
 - Gunicorn + Whitenoise (static files) in prod
 - Pydantic for validation
 

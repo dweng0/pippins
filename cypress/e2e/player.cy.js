@@ -36,12 +36,11 @@ describe("Player", () => {
 });
 
 describe("Health check", () => {
-  it("reports DB and cache as ok", () => {
+  it("reports DB as ok", () => {
     cy.request("/healthz/").then((res) => {
       expect(res.status).to.eq(200);
       expect(res.body.status).to.eq("ok");
       expect(res.body.checks.database).to.eq("ok");
-      expect(res.body.checks.cache).to.eq("ok");
     });
   });
 });

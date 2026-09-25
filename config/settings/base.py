@@ -71,23 +71,11 @@ DATABASES = {
     }
 }
 
-REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+# Sessions live in Postgres so a deploy doesn't orphan every Listener (ADR-0001, #23).
+# Nothing needs a shared cache yet; per-process LocMem is enough.
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        },
-    }
-}
-
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
-
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

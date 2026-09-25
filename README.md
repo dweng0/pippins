@@ -17,7 +17,7 @@ CYPRESS_BASE_URL=http://localhost:8000 npx cypress run
 ```
 
 ## Stack
-Django, PostgreSQL, Redis, Tailwind CSS 4 + daisyUI 5 (built with the standalone `tailwindcss-extra` CLI, no Node), htmx (django-htmx), Alpine.js. Deployed to a single AWS EC2 free-tier instance via Docker Compose; Cloudflare in front.
+Django, PostgreSQL, Tailwind CSS 4 + daisyUI 5 (built with the standalone `tailwindcss-extra` CLI, no Node), htmx (django-htmx), Alpine.js. Deployed to a single AWS EC2 free-tier instance via Docker Compose; Cloudflare in front.
 
 Domain terms are in `CONTEXT.md`; decisions in `docs/adr/`.
 
