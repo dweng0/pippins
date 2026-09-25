@@ -53,3 +53,15 @@ oha -z 20s -c 20 "$URL"
 oha -z 20s -c 20 'http://localhost/static/player/audio/komiku-bad-guys-hq.mp3'
 ```
 Results table goes here (req/s, p50/p99 TTFB, MB/s; edge vs origin).
+
+## Design note: synced multi-device playback (Sendspin, #19)
+
+Investigated, deliberately not built. Same-browser tabs already hand off (only one plays at a time, via `BroadcastChannel`); syncing across devices is the next step up.
+
+- **What it would take:** [Sendspin](https://www.sendspin-audio.com/) clients hold a WebSocket to a server that sends a clock and timestamped audio, so every device plays the same sample at the same moment.
+- **Why not now:**
+  - SDKs are pre-RC1, so the API is still moving.
+  - Needs a separate long-lived async WebSocket service. That's a second process on a 1 GB box, and it doesn't fit gunicorn's sync workers.
+  - The spec expects plain `ws://` on the LAN. From a page served over HTTPS (Cloudflare) the browser blocks that as mixed content, so it would need `wss://` through Cloudflare and a server-side relay.
+  - It's aimed at speakers on one network, not browsers on the internet.
+- **If revisited:** Django Channels (or a small separate asyncio service) behind `wss://`. Start with "follow this Listener": a second device mirrors track + position using server timestamps, which is good enough without sample-accurate sync. Keep device state on the device (ADR-0001).
