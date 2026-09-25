@@ -5,7 +5,10 @@ from django.urls import reverse
 
 class TrackQuerySet(models.QuerySet):
     def with_favourite_flag(self, listener):
-        """Annotate each Track with is_fav for this Listener (one query, no N+1)."""
+        """Annotate each Track with is_fav for this Listener (one query, no N+1).
+        The one place is_fav comes from; a visitor with no Listener yet has no Favourites."""
+        if listener is None:
+            return self.annotate(is_fav=models.Value(False))
         return self.annotate(is_fav=models.Exists(Favourite.objects.filter(listener=listener, track=models.OuterRef("pk"))))
 
     def search(self, q):
@@ -85,7 +88,9 @@ class Play(models.Model):
 
     listener = models.ForeignKey(Listener, on_delete=models.CASCADE, related_name="plays")
     track = models.ForeignKey(Track, on_delete=models.CASCADE, related_name="plays")
-    played_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    played_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-played_at"]
+        # Every read is "this Listener's plays, newest first" (Recently played, dedupe, history cap).
+        indexes = [models.Index(fields=["listener", "-played_at"], name="play_listener_recent")]
