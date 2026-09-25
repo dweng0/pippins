@@ -1,38 +1,18 @@
 {% load static django_htmx %}<!doctype html>
+{# Site shell only: head, CSS, htmx/Alpine. Feature apps fill body/scripts (the player: player/layout.html). #}
 <html lang="en" data-theme="pippins">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Pippins{% endblock %}</title>
   <link href="{% static 'css/app.css' %}" rel="stylesheet">
-  <link rel="icon" href="{% static 'player/covers/placeholder.svg' %}" type="image/svg+xml">
+  <link rel="icon" href="{% static 'core/pippins.svg' %}" type="image/svg+xml">
   <meta name="htmx-config" content='{"historyCacheSize": 0}'>
 </head>
 <body class="min-h-screen bg-base-100 text-base-content" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
-  <div class="flex min-h-screen">
-    <aside class="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-6 bg-base-200 p-5 pb-28 md:flex" data-cy="sidebar">
-      <a href="{% url 'player:track_list' %}" class="pip-wordmark text-3xl">Pippins</a>
-      <nav>
-        <p class="mb-2 text-xs uppercase tracking-widest opacity-50">Library</p>
-        <ul class="menu w-full p-0" hx-target="#main" hx-push-url="true" hx-swap="innerHTML transition:true">
-          <li><a href="{% url 'player:track_list' %}" hx-get="{% url 'player:track_list' %}" class="menu-active" data-cy="nav-all">All tracks</a></li>
-        </ul>
-      </nav>
-    </aside>
+{% block body %}{% endblock %}
 
-    <div class="min-w-0 flex-1">
-      <header class="flex items-center justify-between bg-base-200 px-4 py-3 md:hidden">
-        <a href="{% url 'player:track_list' %}" class="pip-wordmark text-2xl">Pippins</a>
-      </header>
-      <main id="main" hx-history-elt class="mx-auto max-w-5xl p-4 pb-32 sm:p-8 sm:pb-32">
-        {% block main %}{% endblock %}
-      </main>
-    </div>
-  </div>
-
-  {% include "player/player_bar.html" %}
-
-  <script defer src="{% static 'player/player.js' %}"></script>
+  {% block scripts %}{% endblock %}
   {% htmx_script %}
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.17.4/dist/cdn.min.js"
     integrity="sha384-5/joNqFnRyVWzXp99bHot6RHG+EksGp+USSgZwPar7T9SD9PKKER37n/8bXBAZGd" crossorigin="anonymous"></script>

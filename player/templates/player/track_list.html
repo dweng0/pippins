@@ -1,25 +1,43 @@
-{% extends "base.html" %}
-{% load player_tags %}
+{% extends "player/layout.html" %}
+{% load static player_tags %}
 {% block title %}{{ list_name }} · Pippins{% endblock %}
 {% block main %}{% partialdef tracks inline %}
-<title>{{ list_name }} · Pippins</title>
-{{ queue|json_script:"list-data" }}
-<header class="mb-6 flex items-end justify-between gap-4">
+{% if request.htmx %}<title>{{ list_name }} · Pippins</title>{% endif %}{# htmx swaps update document.title from this #}
+{% if hero %}
+<img src="{% static 'core/pippins.svg' %}" alt="Pippins the bunny, wearing headphones"
+     class="mx-auto mb-2 size-40 sm:size-52" data-cy="hero-mascot">
+{% endif %}
+<header class="mb-6 flex flex-wrap items-end justify-between gap-4">
   <div>
-    <p class="text-xs uppercase tracking-widest opacity-60">Playlist</p>
+    <p class="text-xs uppercase tracking-widest opacity-60">Library</p>
     <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl" data-cy="list-title">{{ list_name }}</h1>
-    <p class="mt-1 text-sm opacity-60">{{ tracks|length }} track{{ tracks|length|pluralize }}</p>
   </div>
+  {% if q is not None %}
+  <label class="input input-sm w-full sm:w-64">
+    <svg class="size-4 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="search" name="q" value="{{ q }}" placeholder="Search title, artist, album" aria-label="Search tracks"
+           hx-get="{% url 'player:track_list' %}" hx-trigger="input changed delay:300ms, search"
+           hx-target="#track-rows" hx-swap="innerHTML" hx-replace-url="true" data-cy="search">
+  </label>
+  {% endif %}
 </header>
 
+<div id="track-rows">{% partialdef rows inline %}
+{{ queue|json_script:"list-data" }}
+<p class="mb-3 text-sm opacity-60" data-cy="track-count">{{ tracks|length }} track{{ tracks|length|pluralize }}</p>
 {% if tracks %}
 <ol x-data class="flex flex-col gap-1" data-cy="track-list">
   {% for t in tracks %}
-  <li class="track-row group grid cursor-pointer grid-cols-[2rem_3rem_1fr_auto] items-center gap-3 rounded-box px-3 py-2 transition-colors hover:bg-base-300"
+  <li class="track-row group grid grid-cols-[2rem_3rem_1fr_auto_auto] items-center gap-3 rounded-box px-3 py-2 transition-colors hover:bg-base-300"
       style="--i: {{ forloop.counter0 }}"
       data-cy="track-row" data-track-id="{{ t.id }}"
-      :class="{ 'bg-base-300 text-primary': $store.player.currentId === {{ t.id }} }"
-      @click="$store.player.playFrom(JSON.parse(document.getElementById('list-data').textContent), {{ t.id }})">
+      :class="{ 'bg-base-300 text-primary': $store.player.currentId === {{ t.id }} }">
+    {# A real button (not a clickable <li>) so Tab / Enter / Space and screen readers work; the heart stays a separate control. #}
+    <button type="button" class="col-span-4 grid cursor-pointer grid-cols-subgrid items-center gap-3 rounded-box text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+            aria-label="Play {{ t.title }} by {{ t.artist }}"
+            :aria-current="$store.player.currentId === {{ t.id }} ? 'true' : 'false'"
+            @click="$store.player.playFrom(JSON.parse(document.getElementById('list-data').textContent), {{ t.id }})"
+            data-cy="track-play">
     <span class="flex justify-center text-sm opacity-60 tabular-nums">
       <span x-show="$store.player.currentId !== {{ t.id }}">{{ forloop.counter }}</span>
       <span x-cloak x-show="$store.player.currentId === {{ t.id }}" class="eq" :class="{ 'eq-paused': !$store.player.playing }" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -30,10 +48,13 @@
       <span class="block truncate text-sm opacity-60">{{ t.artist }}{% if t.album %} · {{ t.album }}{% endif %}</span>
     </span>
     <span class="text-sm opacity-60 tabular-nums">{{ t.duration_seconds|mmss }}</span>
+    </button>
+    {% include "player/fav_button.html" %}
   </li>
   {% endfor %}
 </ol>
 {% else %}
-<div class="alert" data-cy="empty">No tracks yet. Run <code>python manage.py load_tracks</code>.</div>
+<div class="alert" data-cy="empty">{{ empty_message }}</div>
 {% endif %}
+{% endpartialdef %}</div>
 {% endpartialdef %}{% endblock %}

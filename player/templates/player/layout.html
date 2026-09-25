@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static %}
+{% block body %}
+  <div class="flex min-h-screen">
+    <aside class="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-6 bg-base-200 p-5 pb-28 md:flex" data-cy="sidebar">
+      <a href="{% url 'player:track_list' %}" class="flex items-center gap-2" data-cy="brand">
+        <img src="{% static 'core/pippins.svg' %}" alt="" class="size-12" data-cy="mascot">
+        <span class="pip-wordmark text-3xl">Pippins</span>
+      </a>
+      <nav>
+        <p class="mb-2 text-xs uppercase tracking-widest opacity-50">Library</p>
+        <ul class="menu w-full p-0" hx-target="#main" hx-push-url="true" hx-swap="innerHTML transition:true">
+          <li><a href="{% url 'player:track_list' %}" hx-get="{% url 'player:track_list' %}" data-nav data-cy="nav-all">All tracks</a></li>
+          <li><a href="{% url 'player:favourites' %}" hx-get="{% url 'player:favourites' %}" data-nav data-cy="nav-favourites">Favourites</a></li>
+          <li><a href="{% url 'player:recent' %}" hx-get="{% url 'player:recent' %}" data-nav data-cy="nav-recent">Recently played</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <div class="min-w-0 flex-1">
+      <header class="flex items-center justify-between bg-base-200 px-4 py-3 md:hidden">
+        <a href="{% url 'player:track_list' %}" class="flex items-center gap-1">
+          <img src="{% static 'core/pippins.svg' %}" alt="" class="size-9">
+          <span class="pip-wordmark text-2xl">Pippins</span>
+        </a>
+        <nav class="flex gap-1" hx-target="#main" hx-push-url="true" hx-swap="innerHTML transition:true">
+          <a href="{% url 'player:track_list' %}" hx-get="{% url 'player:track_list' %}" class="btn btn-ghost btn-sm" data-nav>All</a>
+          <a href="{% url 'player:favourites' %}" hx-get="{% url 'player:favourites' %}" class="btn btn-ghost btn-sm" data-nav>Favourites</a>
+          <a href="{% url 'player:recent' %}" hx-get="{% url 'player:recent' %}" class="btn btn-ghost btn-sm" data-nav>Recent</a>
+        </nav>
+      </header>
+      <main id="main" hx-history-elt class="mx-auto max-w-5xl p-4 pb-32 sm:p-8 sm:pb-32">
+        {% block main %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  {% include "player/player_bar.html" %}
+
+{% endblock %}
+{% block scripts %}
+  {# Before Alpine (both defer, so document order) so the store exists when Alpine initialises. #}
+  <script defer src="{% static 'player/player.js' %}"></script>
+{% endblock %}

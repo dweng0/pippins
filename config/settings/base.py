@@ -71,23 +71,11 @@ DATABASES = {
     }
 }
 
-REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+# Sessions live in Postgres so a deploy doesn't orphan every Listener (ADR-0001, #23).
+# Nothing needs a shared cache yet; per-process LocMem is enough.
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        },
-    }
-}
-
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
-
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -106,12 +94,13 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+    # Content-hashed names: WhiteNoise (and Cloudflare) cache them as immutable, so a deploy can
+    # never serve stale CSS/JS. Needs collectstatic first; DEBUG serves plain names.
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 # mp3 isn't in WhiteNoise's default skip list; gzip saves <1.5% on audio, so don't spend collectstatic time on it.
 WHITENOISE_SKIP_COMPRESS_EXTENSIONS = (*Compressor.SKIP_COMPRESS_EXTENSIONS, "mp3")
-# Default is 60s for unhashed names, so every Cloudflare PoP revalidates each minute. A day keeps
-# origin (and AWS egress) quiet; hashed names + immutable caching is the follow-up (#8, #22).
-WHITENOISE_MAX_AGE = 60 * 60 * 24
+# Hashed names are served immutable for a year; anything requested by its unhashed
+# name keeps WhiteNoise's 60s default, so nothing can go stale for long.
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

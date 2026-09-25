@@ -17,7 +17,9 @@ COPY . .
 # Build Tailwind + daisyUI CSS (standalone binary, no Node) before collectstatic
 RUN tailwindcss-extra -i assets/input.css -o static/css/app.css --minify
 
-RUN python manage.py collectstatic --noinput --settings=config.settings.prod || true
+# Build-time only values: prod settings need them to import. Fails the build if collectstatic fails.
+RUN DJANGO_SECRET_KEY=build-only DJANGO_ALLOWED_HOSTS=localhost \
+    python manage.py collectstatic --noinput --settings=config.settings.prod
 
 EXPOSE 8000
 

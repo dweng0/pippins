@@ -1,0 +1,59 @@
+<svg viewBox="-10 -10 140 140" fill="none" xmlns="http://www.w3.org/2000/svg" width="140" height="140">
+  <!-- Pippins mascot: the Mooch bunny (mooch.run), wearing headphones. Animations run in <img> too;
+       favicons render the first frame. -->
+  <style>
+    @keyframes head-rotate { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+    @keyframes ear-wiggle-left { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+    @keyframes ear-wiggle-right { 0%, 100% { transform: rotate(5deg); } 50% { transform: rotate(-5deg); } }
+    @keyframes eye-blink { 0%, 90%, 100% { opacity: 1; } 95% { opacity: 0; } }
+    @media (prefers-reduced-motion: no-preference) {
+      .head { transform-origin: 60px 55px; animation: head-rotate 3s ease-in-out infinite; }
+      .ear-left { transform-origin: 40px 30px; animation: ear-wiggle-left 2s ease-in-out infinite; }
+      .ear-right { transform-origin: 80px 30px; animation: ear-wiggle-right 2s ease-in-out infinite 0.3s; }
+      .eye { animation: eye-blink 4s ease-in-out infinite; }
+    }
+  </style>
+
+  <defs>
+    <linearGradient id="pip-fur" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ea580c" />
+      <stop offset="100%" stop-color="#fb923c" />
+    </linearGradient>
+  </defs>
+
+  <g class="head">
+    <ellipse class="ear-left" cx="40" cy="30" rx="12" ry="35" fill="url(#pip-fur)" />
+    <ellipse class="ear-left" cx="40" cy="30" rx="6" ry="28" fill="#fecdd3" opacity="0.45" />
+    <ellipse class="ear-right" cx="80" cy="30" rx="12" ry="35" fill="url(#pip-fur)" />
+    <ellipse class="ear-right" cx="80" cy="30" rx="6" ry="28" fill="#fecdd3" opacity="0.45" />
+
+    <ellipse cx="60" cy="55" rx="30" ry="28" fill="url(#pip-fur)" />
+
+    <!-- Headphones: band over the head between the ears, cups on the cheeks -->
+    <path d="M28 56 Q28 22 60 22 Q92 22 92 56" stroke="#1f1a1c" stroke-width="5" stroke-linecap="round" fill="none" />
+    <rect x="21" y="48" width="12" height="20" rx="5" fill="#1f1a1c" />
+    <rect x="87" y="48" width="12" height="20" rx="5" fill="#1f1a1c" />
+    <rect x="24" y="52" width="4" height="12" rx="2" fill="#d9f99d" opacity="0.9" />
+    <rect x="92" y="52" width="4" height="12" rx="2" fill="#d9f99d" opacity="0.9" />
+
+    <!-- Happy ^ ^ eyes -->
+    <path class="eye" d="M43 52 Q48 47 53 52" stroke="#111827" stroke-width="2.5" stroke-linecap="round" fill="none" />
+    <path class="eye" d="M67 52 Q72 47 77 52" stroke="#111827" stroke-width="2.5" stroke-linecap="round" fill="none" />
+    <ellipse cx="42" cy="59" rx="4" ry="2.5" fill="#fda4af" opacity="0.5" />
+    <ellipse cx="78" cy="59" rx="4" ry="2.5" fill="#fda4af" opacity="0.5" />
+
+    <path d="M52 62 Q60 67 68 62" stroke="#111827" stroke-width="2" stroke-linecap="round" fill="none" />
+
+    <path d="M20 60 Q14 60 6 57" stroke="#fde8d7" stroke-width="1.5" stroke-linecap="round" opacity="0.5" />
+    <path d="M100 60 Q106 60 114 57" stroke="#fde8d7" stroke-width="1.5" stroke-linecap="round" opacity="0.5" />
+  </g>
+
+  <ellipse cx="60" cy="95" rx="25" ry="20" fill="url(#pip-fur)" opacity="0.85" />
+  <ellipse cx="60" cy="95" rx="15" ry="12" fill="white" opacity="0.3" />
+  <ellipse cx="50" cy="110" rx="8" ry="6" fill="url(#pip-fur)" />
+  <ellipse cx="70" cy="110" rx="8" ry="6" fill="url(#pip-fur)" />
+  <ellipse cx="47" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4" />
+  <ellipse cx="53" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4" />
+  <ellipse cx="67" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4" />
+  <ellipse cx="73" cy="110" rx="2" ry="1.5" fill="#111827" opacity="0.4" />
+</svg>

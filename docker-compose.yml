@@ -15,11 +15,6 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
@@ -27,7 +22,6 @@ services:
       DJANGO_SETTINGS_MODULE: config.settings.dev
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
-      REDIS_URL: redis://redis:6379/0
     env_file:
       - .env
     volumes:
@@ -37,8 +31,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_started
 
   tailwind:
     build: .

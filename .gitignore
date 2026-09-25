@@ -18,7 +18,7 @@ infra/tfplan
 infra/*.tfplan
 
 # Node / Cypress
-node_modules/
+node_modules
 cypress/screenshots/
 cypress/videos/
 
@@ -32,3 +32,4 @@ personaljournal.md
 # StackCX material (keep local; copies in ~/Documents/stackcx/)
 StackCX*.pdf
 *.zip
+.playwright-mcp/

@@ -1,18 +1,26 @@
 <footer x-data class="pip-player fixed inset-x-0 bottom-0 z-20 px-4 py-3" data-cy="player">
   <audio x-ref="audio" x-init="$store.player.bind($refs.audio)" preload="metadata"></audio>
-  <div class="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-3 md:grid-cols-[1fr_2fr_1fr]">
+  <div class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-2 md:grid-cols-[1fr_2fr_1fr] md:gap-3">
     <div class="flex min-w-0 items-center gap-3" data-cy="now-playing">
       <template x-if="$store.player.current">
         <img :src="$store.player.current.cover" alt="" class="cover size-14 shrink-0 rounded-md object-cover" :class="{ 'is-playing': $store.player.playing }">
       </template>
       <div class="min-w-0">
         <p class="truncate font-semibold" data-cy="now-playing-title" x-text="$store.player.current ? $store.player.current.title : 'Pick a track'"></p>
-        <p class="truncate text-sm opacity-60" data-cy="now-playing-artist" x-text="$store.player.current ? $store.player.current.artist : ''"></p>
+        <p x-show="!$store.player.error" class="truncate text-sm opacity-60" data-cy="now-playing-artist" x-text="$store.player.current ? $store.player.current.artist : ''"></p>
+        <p x-cloak x-show="$store.player.error" class="truncate text-sm text-error" role="status" aria-live="polite" data-cy="player-error" x-text="$store.player.error"></p>
       </div>
+      {# Mobile volume: compact, same store. #}
+      <input type="range" class="range range-primary range-xs ml-auto w-20 md:hidden" min="0" max="1" step="0.01" aria-label="Volume"
+             :value="$store.player.volume" @input="$store.player.setVolume($event.target.value)" data-cy="volume-mobile">
     </div>
 
     <div class="flex flex-col items-center gap-1">
       <div class="flex items-center gap-2">
+        <button class="btn btn-ghost btn-circle btn-sm" @click="$store.player.toggleShuffle()" aria-label="Shuffle"
+                :aria-pressed="$store.player.shuffled" :class="$store.player.shuffled ? 'text-primary' : 'opacity-60'" data-cy="shuffle">
+          <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+        </button>
         <button class="btn btn-ghost btn-circle btn-sm" @click="$store.player.prev()" aria-label="Previous track" data-cy="prev">
           <svg class="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
         </button>
@@ -25,11 +33,12 @@
           <svg class="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
         </button>
       </div>
-      <div class="hidden w-full items-center gap-2 text-xs tabular-nums opacity-80 md:flex">
-        <span x-text="$store.player.fmt($store.player.currentTime)">0:00</span>
+      <div class="flex w-full items-center gap-2 text-xs tabular-nums opacity-80">
+        <span x-text="$store.player.fmt($store.player.shownTime)">0:00</span>
+        {# While dragging, the thumb follows the pointer (scrubTime); timeupdate can't yank it back. Seek on release. #}
         <input type="range" class="range range-primary range-xs flex-1" min="0" step="0.1" aria-label="Seek"
-               :max="$store.player.duration || 0" :value="$store.player.currentTime"
-               @input="$store.player.seek($event.target.value)" data-cy="seek">
+               :max="$store.player.duration || 0" :value="$store.player.shownTime"
+               @input="$store.player.scrub($event.target.value)" @change="$store.player.endScrub($event.target.value)" data-cy="seek">
         <span x-text="$store.player.fmt($store.player.duration)">0:00</span>
       </div>
     </div>
