@@ -94,12 +94,13 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+    # Content-hashed names: WhiteNoise (and Cloudflare) cache them as immutable, so a deploy can
+    # never serve stale CSS/JS. Needs collectstatic first; DEBUG serves plain names.
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 # mp3 isn't in WhiteNoise's default skip list; gzip saves <1.5% on audio, so don't spend collectstatic time on it.
 WHITENOISE_SKIP_COMPRESS_EXTENSIONS = (*Compressor.SKIP_COMPRESS_EXTENSIONS, "mp3")
-# Default is 60s for unhashed names, so every Cloudflare PoP revalidates each minute. A day keeps
-# origin (and AWS egress) quiet; hashed names + immutable caching is the follow-up (#8, #22).
-WHITENOISE_MAX_AGE = 60 * 60 * 24
+# Hashed names are served immutable for a year; anything requested by its unhashed
+# name keeps WhiteNoise's 60s default, so nothing can go stale for long.
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

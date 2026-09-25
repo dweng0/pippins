@@ -1,4 +1,5 @@
 import pytest
+from django.conf import settings as django_settings
 from django.urls import reverse
 
 from player.models import Listener, Track
@@ -112,6 +113,47 @@ def test_static_mp3_supports_range_requests(client, settings):
     assert response["Content-Range"].startswith("bytes 1000-1999/")
     assert response["Content-Type"] == "audio/mpeg"
     assert len(b"".join(response.streaming_content)) == 1000
+
+
+# Captured at import, before conftest's autouse fixture swaps in plain storage for the other tests.
+PROD_STATIC_STORAGE = django_settings.STORAGES["staticfiles"]
+
+
+@pytest.fixture
+def collected_static(settings, tmp_path):
+    """The prod static path: collectstatic into a fresh STATIC_ROOT, WhiteNoise serving from it (no finders)."""
+    from django.core.management import call_command
+
+    settings.STORAGES = {**settings.STORAGES, "staticfiles": PROD_STATIC_STORAGE}
+    settings.STATIC_ROOT = tmp_path / "static"
+    settings.WHITENOISE_USE_FINDERS = False
+    settings.WHITENOISE_AUTOREFRESH = False
+    call_command("collectstatic", "--noinput", verbosity=0)
+    return settings.STATIC_ROOT
+
+
+def test_prod_static_serves_hashed_immutable_audio_with_ranges(client, collected_static):
+    from django.templatetags.static import static
+
+    url = static("player/audio/komiku-bad-guys-hq.mp3")
+    assert url != "/static/player/audio/komiku-bad-guys-hq.mp3"  # content-hashed name
+
+    response = client.get(url, HTTP_RANGE="bytes=0-1023")
+    assert response.status_code == 206
+    assert "immutable" in response["Cache-Control"]
+    assert len(b"".join(response.streaming_content)) == 1024
+
+    assert client.get(url, HTTP_RANGE="bytes=999999999-").status_code == 416
+
+
+def test_prod_static_js_is_hashed_so_deploys_never_serve_stale_code(client, collected_static):
+    from django.templatetags.static import static
+
+    url = static("player/player.js")
+    assert url.startswith("/static/player/player.") and url != "/static/player/player.js"
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "immutable" in response["Cache-Control"]
 
 
 def test_mmss_filter_formats_durations():

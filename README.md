@@ -32,11 +32,10 @@ Browser <audio> ──Range──► Cloudflare edge ──(miss only)──► 
 
 - **Seeking** relies on HTTP Range: WhiteNoise answers `206 Partial Content` (tested in `player/tests.py`). `whitenoise.runserver_nostatic` gives dev the same behaviour.
 - **Concurrency at origin:** gunicorn `gthread`, 2 workers × 4 threads, so a long download holds a thread rather than a whole worker. Only edge cache misses reach the box.
-- **Caching:** `WHITENOISE_MAX_AGE` is 1 day (filenames aren't content-hashed, so not `immutable`). Cache hits also keep AWS egress, and therefore cost, at zero.
+- **Caching:** static names are content-hashed (`CompressedManifestStaticFilesStorage`), so audio, CSS and JS are served `immutable` for a year and a deploy can't leave stale CSS/JS at the edge. Cache hits also keep AWS egress, and therefore cost, at zero. Tested on the prod path (collectstatic + WhiteNoise, no finders) in `player/tests.py`.
 - **Tracks are ~320 kbps** (≈40 KB/s real-time); browsers buffer ahead, so a play is roughly one 3–7 MB fetch plus small range fetches on seek.
 
 ### Known limitations / next steps
-- Hashed filenames (`ManifestStaticFilesStorage`) + 1-year immutable caching (#8). Audio files are already slug-named with full ID3 tags (#22), so this is a storage-backend switch.
 - Cold-cache stampede: many simultaneous misses at one PoP can all reach origin (8 threads).
 - At real scale, move audio to object storage with free egress (e.g. Cloudflare R2) so the box serves none of it.
 - Cloudflare free-plan terms around serving large media volumes should be checked before any real traffic.

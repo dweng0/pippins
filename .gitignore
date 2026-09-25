@@ -32,3 +32,4 @@ personaljournal.md
 # StackCX material (keep local; copies in ~/Documents/stackcx/)
 StackCX*.pdf
 *.zip
+.playwright-mcp/
