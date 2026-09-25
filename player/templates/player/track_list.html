@@ -24,11 +24,16 @@
 {% if tracks %}
 <ol x-data class="flex flex-col gap-1" data-cy="track-list">
   {% for t in tracks %}
-  <li class="track-row group grid cursor-pointer grid-cols-[2rem_3rem_1fr_auto_auto] items-center gap-3 rounded-box px-3 py-2 transition-colors hover:bg-base-300"
+  <li class="track-row group grid grid-cols-[2rem_3rem_1fr_auto_auto] items-center gap-3 rounded-box px-3 py-2 transition-colors hover:bg-base-300"
       style="--i: {{ forloop.counter0 }}"
       data-cy="track-row" data-track-id="{{ t.id }}"
-      :class="{ 'bg-base-300 text-primary': $store.player.currentId === {{ t.id }} }"
-      @click="$store.player.playFrom(JSON.parse(document.getElementById('list-data').textContent), {{ t.id }})">
+      :class="{ 'bg-base-300 text-primary': $store.player.currentId === {{ t.id }} }">
+    {# A real button (not a clickable <li>) so Tab / Enter / Space and screen readers work; the heart stays a separate control. #}
+    <button type="button" class="col-span-4 grid cursor-pointer grid-cols-subgrid items-center gap-3 rounded-box text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+            aria-label="Play {{ t.title }} by {{ t.artist }}"
+            :aria-current="$store.player.currentId === {{ t.id }} ? 'true' : 'false'"
+            @click="$store.player.playFrom(JSON.parse(document.getElementById('list-data').textContent), {{ t.id }})"
+            data-cy="track-play">
     <span class="flex justify-center text-sm opacity-60 tabular-nums">
       <span x-show="$store.player.currentId !== {{ t.id }}">{{ forloop.counter }}</span>
       <span x-cloak x-show="$store.player.currentId === {{ t.id }}" class="eq" :class="{ 'eq-paused': !$store.player.playing }" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -39,6 +44,7 @@
       <span class="block truncate text-sm opacity-60">{{ t.artist }}{% if t.album %} · {{ t.album }}{% endif %}</span>
     </span>
     <span class="text-sm opacity-60 tabular-nums">{{ t.duration_seconds|mmss }}</span>
+    </button>
     {% include "player/fav_button.html" %}
   </li>
   {% endfor %}

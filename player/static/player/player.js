@@ -34,9 +34,15 @@ document.addEventListener("alpine:init", () => {
     unshuffledQueue: [],
     lastSavedAt: 0,
     channel: null,
+    scrubbing: false,
+    scrubTime: 0,
+    error: "",
 
     get current() {
       return this.queue[this.index] || null;
+    },
+    get shownTime() {
+      return this.scrubbing ? this.scrubTime : this.currentTime;
     },
     get currentId() {
       return this.current ? this.current.id : null;
@@ -55,6 +61,12 @@ document.addEventListener("alpine:init", () => {
         this.save();
       });
       audio.addEventListener("ended", () => this.next());
+      audio.addEventListener("playing", () => (this.error = ""));
+      audio.addEventListener("error", () => {
+        if (!this.current) return;
+        this.playing = false;
+        this.error = "Couldn't load this track.";
+      });
       audio.addEventListener("timeupdate", () => {
         this.currentTime = audio.currentTime;
         if (Date.now() - this.lastSavedAt > 2000) this.save();
@@ -175,6 +187,7 @@ document.addEventListener("alpine:init", () => {
       this.index = i;
       this.currentTime = 0;
       this.playReported = false;
+      this.error = "";
       this.duration = this.current.duration || 0;
       this.audio.src = this.current.src;
       this.updateMediaSession();
@@ -183,7 +196,12 @@ document.addEventListener("alpine:init", () => {
     },
 
     play() {
-      this.audio.play().catch(() => (this.playing = false));
+      this.audio.play().catch((err) => {
+        this.playing = false;
+        if (err.name === "NotAllowedError") this.error = "Press play to start."; // autoplay blocked
+        else if (err.name === "NotSupportedError") this.error = "Couldn't load this track."; // 404 / bad file
+        else if (err.name !== "AbortError") this.error = "Playback failed."; // AbortError: src changed mid-start
+      });
     },
 
     toggle() {
@@ -218,6 +236,17 @@ document.addEventListener("alpine:init", () => {
 
     seek(seconds) {
       this.audio.currentTime = Number(seconds);
+    },
+
+    scrub(seconds) {
+      this.scrubbing = true;
+      this.scrubTime = Number(seconds);
+    },
+
+    endScrub(seconds) {
+      this.seek(seconds);
+      this.currentTime = Number(seconds);
+      this.scrubbing = false;
     },
 
     setVolume(v) {

@@ -86,6 +86,29 @@ describe("Player", () => {
       cy.window().its("Alpine").invoke("store", "player").its("queue").should("have.length", 6);
     });
   });
+
+  it("track rows are real buttons that report the current track", () => {
+    cy.get('[data-cy="track-play"]').should("have.length", 6).first().should("match", "button");
+    cy.get('[data-cy="track-play"]').eq(2).focus().click();
+    cy.get('[data-cy="track-play"]').eq(2).should("have.attr", "aria-current", "true");
+    cy.get('[data-cy="track-play"]').eq(0).should("have.attr", "aria-current", "false");
+  });
+
+  it("a track that fails to load shows an error instead of failing silently", () => {
+    cy.window().then((win) => {
+      win.Alpine.store("player").playFrom(
+        [{ id: 999, title: "Missing", artist: "Nobody", src: "/static/player/audio/nope.mp3", cover: "", playedUrl: "/tracks/999/played/" }],
+        999,
+      );
+    });
+    cy.get('[data-cy="player-error"]').should("be.visible").and("contain", "Couldn't load this track.");
+  });
+
+  it("seek and volume are available on a phone-sized screen", () => {
+    cy.viewport("iphone-x");
+    cy.get('[data-cy="seek"]').should("be.visible");
+    cy.get('[data-cy="volume-mobile"]').should("be.visible");
+  });
 });
 
 describe("Health check", () => {
