@@ -1,9 +1,10 @@
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 from django.views.decorators.vary import vary_on_headers
 
 from .models import Track
-from .services import favourite_tracks, get_listener, toggle_favourite
+from .services import favourite_tracks, get_listener, recent_tracks, record_play, toggle_favourite
 
 
 def _render_list(request, tracks, list_name, empty_message, q=None):
@@ -48,3 +49,15 @@ def favourite_toggle(request, pk):
     track = get_object_or_404(Track, pk=pk)
     track.is_fav = toggle_favourite(get_listener(request), track)
     return render(request, "player/fav_button.html", {"t": track})
+
+
+@vary_on_headers("HX-Request", "HX-History-Restore-Request")
+def recent(request):
+    listener = get_listener(request)
+    return _render_list(request, recent_tracks(listener), "Recently played", "Nothing played yet.")
+
+
+@require_POST
+def played(request, pk):
+    record_play(get_listener(request), get_object_or_404(Track, pk=pk))
+    return HttpResponse(status=204)

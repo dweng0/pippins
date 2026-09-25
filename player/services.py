@@ -4,7 +4,9 @@ from django.utils.text import slugify
 from mutagen.id3 import ID3NoHeaderError
 from mutagen.mp3 import MP3
 
-from .models import Favourite, Listener, Track
+from django.db.models import Max
+
+from .models import Favourite, Listener, Play, Track
 
 APP_STATIC = Path(__file__).resolve().parent / "static"
 AUDIO_DIR = APP_STATIC / "player" / "audio"
@@ -38,6 +40,20 @@ def favourite_tracks(listener):
     """The Listener's Favourites, most recently added first."""
     return Track.objects.with_favourite_flag(listener).filter(favourited_by__listener=listener).order_by(
         "-favourited_by__created_at"
+    )
+
+
+def record_play(listener, track):
+    return Play.objects.create(listener=listener, track=track)
+
+
+def recent_tracks(listener, limit=20):
+    """Tracks the Listener has played, newest first, each Track once."""
+    return (
+        Track.objects.with_favourite_flag(listener)
+        .filter(plays__listener=listener)
+        .annotate(last_played=Max("plays__played_at"))
+        .order_by("-last_played")[:limit]
     )
 
 

@@ -1,5 +1,6 @@
 from django.db import models
 from django.templatetags.static import static
+from django.urls import reverse
 
 
 class TrackQuerySet(models.QuerySet):
@@ -54,6 +55,7 @@ class Track(models.Model):
             "src": self.audio_url,
             "cover": self.cover_url,
             "duration": self.duration_seconds,
+            "playedUrl": reverse("player:played", args=[self.id]),
         }
 
 
@@ -76,3 +78,14 @@ class Favourite(models.Model):
     class Meta:
         constraints = [models.UniqueConstraint(fields=["listener", "track"], name="unique_favourite")]
         ordering = ["-created_at"]
+
+
+class Play(models.Model):
+    """One time a Listener started a Track. Feeds Recently played."""
+
+    listener = models.ForeignKey(Listener, on_delete=models.CASCADE, related_name="plays")
+    track = models.ForeignKey(Track, on_delete=models.CASCADE, related_name="plays")
+    played_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-played_at"]

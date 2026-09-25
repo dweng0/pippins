@@ -9,6 +9,7 @@ document.addEventListener("alpine:init", () => {
     currentTime: 0,
     duration: 0,
     volume: 0.8,
+    playReported: false,
 
     get current() {
       return this.queue[this.index] || null;
@@ -20,7 +21,10 @@ document.addEventListener("alpine:init", () => {
     bind(audio) {
       this.audio = audio;
       audio.volume = this.volume;
-      audio.addEventListener("play", () => (this.playing = true));
+      audio.addEventListener("play", () => {
+        this.playing = true;
+        this.reportPlay();
+      });
       audio.addEventListener("pause", () => (this.playing = false));
       audio.addEventListener("ended", () => this.next());
       audio.addEventListener("timeupdate", () => (this.currentTime = audio.currentTime));
@@ -37,6 +41,7 @@ document.addEventListener("alpine:init", () => {
       if (i < 0 || i >= this.queue.length) return;
       this.index = i;
       this.currentTime = 0;
+      this.playReported = false;
       this.duration = this.current.duration || 0;
       this.audio.src = this.current.src;
       if (autoplay) this.play();
@@ -69,6 +74,13 @@ document.addEventListener("alpine:init", () => {
       else this.load(this.index - 1, true);
     },
 
+    // Once per loaded track, on first actual playback: feeds Recently played (fire and forget).
+    reportPlay() {
+      if (this.playReported || !this.current) return;
+      this.playReported = true;
+      fetch(this.current.playedUrl, { method: "POST", headers: { "X-CSRFToken": csrfToken() } }).catch(() => {});
+    },
+
     seek(seconds) {
       this.audio.currentTime = Number(seconds);
     },
@@ -84,6 +96,14 @@ document.addEventListener("alpine:init", () => {
     },
   });
 });
+
+function csrfToken() {
+  try {
+    return JSON.parse(document.body.getAttribute("hx-headers"))["X-CSRFToken"];
+  } catch {
+    return "";
+  }
+}
 
 // The sidebar isn't re-rendered by htmx nav, so its highlight follows the URL here.
 function markActiveNav() {

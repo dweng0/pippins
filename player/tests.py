@@ -184,3 +184,30 @@ def test_search_full_page_keeps_query_and_shows_empty_message(client, catalogue)
 @pytest.mark.django_db
 def test_favourites_page_has_no_search_box(client, catalogue):
     assert 'data-cy="search"' not in client.get(reverse("player:favourites")).content.decode()
+
+
+@pytest.mark.django_db
+def test_played_records_a_play(client, catalogue):
+    from player.models import Play
+
+    track = Track.objects.first()
+    response = client.post(reverse("player:played", args=[track.pk]))
+    assert response.status_code == 204
+    assert Play.objects.get().track == track
+
+
+@pytest.mark.django_db
+def test_recent_is_newest_first_and_deduped(client, catalogue):
+    a, b = Track.objects.all()[:2]
+    for t in (a, b, a):
+        client.post(reverse("player:played", args=[t.pk]))
+
+    body = client.get(reverse("player:recent")).content.decode()
+    assert body.count('data-cy="track-row"') == 2
+    assert body.index(a.title) < body.index(b.title)
+
+
+@pytest.mark.django_db
+def test_queue_items_carry_played_url(catalogue):
+    track = Track.objects.first()
+    assert track.as_queue_item()["playedUrl"] == f"/tracks/{track.pk}/played/"

@@ -17,6 +17,7 @@
         <ul class="menu w-full p-0" hx-target="#main" hx-push-url="true" hx-swap="innerHTML transition:true">
           <li><a href="{% url 'player:track_list' %}" hx-get="{% url 'player:track_list' %}" data-nav data-cy="nav-all">All tracks</a></li>
           <li><a href="{% url 'player:favourites' %}" hx-get="{% url 'player:favourites' %}" data-nav data-cy="nav-favourites">Favourites</a></li>
+          <li><a href="{% url 'player:recent' %}" hx-get="{% url 'player:recent' %}" data-nav data-cy="nav-recent">Recently played</a></li>
         </ul>
       </nav>
     </aside>
@@ -27,6 +28,7 @@
         <nav class="flex gap-1" hx-target="#main" hx-push-url="true" hx-swap="innerHTML transition:true">
           <a href="{% url 'player:track_list' %}" hx-get="{% url 'player:track_list' %}" class="btn btn-ghost btn-sm" data-nav>All</a>
           <a href="{% url 'player:favourites' %}" hx-get="{% url 'player:favourites' %}" class="btn btn-ghost btn-sm" data-nav>Favourites</a>
+          <a href="{% url 'player:recent' %}" hx-get="{% url 'player:recent' %}" class="btn btn-ghost btn-sm" data-nav>Recent</a>
         </nav>
       </header>
       <main id="main" hx-history-elt class="mx-auto max-w-5xl p-4 pb-32 sm:p-8 sm:pb-32">
