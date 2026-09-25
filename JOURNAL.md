@@ -51,3 +51,23 @@
 - CI-built images on GHCR (decide public package vs pull token).
 - Redis roles (sessions → `cached_db` at minimum); `pg_dump` → S3 backups.
 - htmx; daisyUI dark mode; Celery only if needed.
+
+## 2026-09-25 — Assessment part 2: music player, slice 1
+
+**Done**
+- Read the part 2 brief (build a Spotify-like player in 2h) and worked out the plan through Q&A. Plan captured as issues #3–#23; domain terms in `CONTEXT.md` (Listener, Track, Queue, Favourite); ADR-0001 (a Listener model owns per-person state so accounts can attach later).
+- Research agents checked WhiteNoise Range support, htmx + Alpine pitfalls, the custom theme and animations, and Sendspin. Findings are posted on the issues.
+- Slice 1 (PR #24): `player` app, `Track` catalogue + `load_tracks`, `Listener`, track list, Alpine player (play/pause, prev/next, volume, seek, Queue), "Pippins" daisyUI theme, first animations, Task demo removed. pytest 11/11, Cypress 4/4 locally.
+- Repo renamed to `dweng0/pippins`; `deploy.sh` updated to match.
+
+**Decisions / why**
+- One `<audio>` element + an Alpine store; htmx only swaps `#main` (`hx-history-elt`), so navigation never stops playback.
+- Audio is committed static, served by WhiteNoise with Range/206 and cached by Cloudflare, following the brief's "keep audio in the app" hint. Sendspin was rejected for core (pre-RC1, needs a separate WS service, spec requires `ws://` behind HTTPS).
+- gthread workers: a streaming mp3 holds a thread, not a worker. Cache TTL is 1 day for now; hashed names + immutable caching come later (#22).
+- Original filenames kept for now (2 files have no tags, so the filename is their metadata). Revisit in #22.
+
+**Next**
+- Merge #24 once green. The box runs its own copy of `deploy.sh`, so reinstall it there after merge.
+- #23 drop Redis (sessions to Postgres; Redis has no volume, so every deploy wipes Listeners).
+- #14 favourites, #11 persistence, #12 search, #13 shuffle, #15 recent, #20 Media Session, #21 multi-tab.
+- Nit: clicking a row scrolls the page slightly. Fill in the README audio measurements after deploy.

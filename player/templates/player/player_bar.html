@@ -1,0 +1,43 @@
+<footer x-data class="pip-player fixed inset-x-0 bottom-0 z-20 px-4 py-3" data-cy="player">
+  <audio x-ref="audio" x-init="$store.player.bind($refs.audio)" preload="metadata"></audio>
+  <div class="mx-auto grid max-w-6xl grid-cols-[1fr_auto] items-center gap-3 md:grid-cols-[1fr_2fr_1fr]">
+    <div class="flex min-w-0 items-center gap-3" data-cy="now-playing">
+      <template x-if="$store.player.current">
+        <img :src="$store.player.current.cover" alt="" class="cover size-14 shrink-0 rounded-md object-cover" :class="{ 'is-playing': $store.player.playing }">
+      </template>
+      <div class="min-w-0">
+        <p class="truncate font-semibold" data-cy="now-playing-title" x-text="$store.player.current ? $store.player.current.title : 'Pick a track'"></p>
+        <p class="truncate text-sm opacity-60" data-cy="now-playing-artist" x-text="$store.player.current ? $store.player.current.artist : ''"></p>
+      </div>
+    </div>
+
+    <div class="flex flex-col items-center gap-1">
+      <div class="flex items-center gap-2">
+        <button class="btn btn-ghost btn-circle btn-sm" @click="$store.player.prev()" aria-label="Previous track" data-cy="prev">
+          <svg class="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
+        </button>
+        <label class="swap swap-rotate btn btn-circle btn-primary" data-cy="play-toggle">
+          <input type="checkbox" aria-label="Play/pause" :checked="$store.player.playing" @change.prevent="$store.player.toggle()">
+          <svg class="swap-off size-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="swap-on size-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+        </label>
+        <button class="btn btn-ghost btn-circle btn-sm" @click="$store.player.next()" aria-label="Next track" data-cy="next">
+          <svg class="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
+        </button>
+      </div>
+      <div class="hidden w-full items-center gap-2 text-xs tabular-nums opacity-80 md:flex">
+        <span x-text="$store.player.fmt($store.player.currentTime)">0:00</span>
+        <input type="range" class="range range-primary range-xs flex-1" min="0" step="0.1" aria-label="Seek"
+               :max="$store.player.duration || 0" :value="$store.player.currentTime"
+               @input="$store.player.seek($event.target.value)" data-cy="seek">
+        <span x-text="$store.player.fmt($store.player.duration)">0:00</span>
+      </div>
+    </div>
+
+    <div class="hidden items-center justify-end gap-2 md:flex">
+      <svg class="size-5 opacity-70" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 9v6h4l5 5V4L8 9zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
+      <input type="range" class="range range-primary range-xs w-28" min="0" max="1" step="0.01" aria-label="Volume"
+             :value="$store.player.volume" @input="$store.player.setVolume($event.target.value)" data-cy="volume">
+    </div>
+  </div>
+</footer>

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load player_tags %}
+{% block title %}{{ list_name }} · Pippins{% endblock %}
+{% block main %}{% partialdef tracks inline %}
+<title>{{ list_name }} · Pippins</title>
+{{ queue|json_script:"list-data" }}
+<header class="mb-6 flex items-end justify-between gap-4">
+  <div>
+    <p class="text-xs uppercase tracking-widest opacity-60">Playlist</p>
+    <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl" data-cy="list-title">{{ list_name }}</h1>
+    <p class="mt-1 text-sm opacity-60">{{ tracks|length }} track{{ tracks|length|pluralize }}</p>
+  </div>
+</header>
+
+{% if tracks %}
+<ol x-data class="flex flex-col gap-1" data-cy="track-list">
+  {% for t in tracks %}
+  <li class="track-row group grid cursor-pointer grid-cols-[2rem_3rem_1fr_auto] items-center gap-3 rounded-box px-3 py-2 transition-colors hover:bg-base-300"
+      style="--i: {{ forloop.counter0 }}"
+      data-cy="track-row" data-track-id="{{ t.id }}"
+      :class="{ 'bg-base-300 text-primary': $store.player.currentId === {{ t.id }} }"
+      @click="$store.player.playFrom(JSON.parse(document.getElementById('list-data').textContent), {{ t.id }})">
+    <span class="flex justify-center text-sm opacity-60 tabular-nums">
+      <span x-show="$store.player.currentId !== {{ t.id }}">{{ forloop.counter }}</span>
+      <span x-cloak x-show="$store.player.currentId === {{ t.id }}" class="eq" :class="{ 'eq-paused': !$store.player.playing }" aria-hidden="true"><i></i><i></i><i></i></span>
+    </span>
+    <img src="{{ t.cover_url }}" alt="" class="size-12 rounded-md object-cover" loading="lazy">
+    <span class="min-w-0">
+      <span class="block truncate font-semibold" data-cy="track-title">{{ t.title }}</span>
+      <span class="block truncate text-sm opacity-60">{{ t.artist }}{% if t.album %} · {{ t.album }}{% endif %}</span>
+    </span>
+    <span class="text-sm opacity-60 tabular-nums">{{ t.duration_seconds|mmss }}</span>
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<div class="alert" data-cy="empty">No tracks yet. Run <code>python manage.py load_tracks</code>.</div>
+{% endif %}
+{% endpartialdef %}{% endblock %}

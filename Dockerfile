@@ -21,4 +21,5 @@ RUN python manage.py collectstatic --noinput --settings=config.settings.prod || 
 
 EXPOSE 8000
 
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+# gthread: a streaming mp3 holds a thread, not a whole worker
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--worker-class", "gthread", "--threads", "4"]

@@ -28,3 +28,7 @@ brief-*.pdf
 # Local handoff notes (private)
 HANDOFF.md
 personaljournal.md
+
+# StackCX material (keep local; copies in ~/Documents/stackcx/)
+StackCX*.pdf
+*.zip

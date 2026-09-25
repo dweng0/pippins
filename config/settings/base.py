@@ -8,6 +8,7 @@ from pathlib import Path
 import os
 
 from dotenv import load_dotenv
+from whitenoise.compress import Compressor
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -21,14 +22,18 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "whitenoise.runserver_nostatic",
     "django.contrib.staticfiles",
+    "django_htmx",
     "core",
+    "player",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -103,5 +108,10 @@ STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
+# mp3 isn't in WhiteNoise's default skip list; gzip saves <1.5% on audio, so don't spend collectstatic time on it.
+WHITENOISE_SKIP_COMPRESS_EXTENSIONS = (*Compressor.SKIP_COMPRESS_EXTENSIONS, "mp3")
+# Default is 60s for unhashed names, so every Cloudflare PoP revalidates each minute. A day keeps
+# origin (and AWS egress) quiet; hashed names + immutable caching is the follow-up (#8, #22).
+WHITENOISE_MAX_AGE = 60 * 60 * 24
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

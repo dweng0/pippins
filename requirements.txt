@@ -9,12 +9,14 @@ click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.4.0
 Django==6.1.1
+django-htmx==1.29.0
 django-redis==7.0.0
 gunicorn==26.2.0
 h11==0.16.0
 iniconfig==2.3.0
 jh2==5.0.15
 kombu==5.6.2
+mutagen==1.48.1
 niquests==3.21.2
 packaging==26.3
 platformdirs==4.11.12
