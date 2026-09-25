@@ -5,7 +5,7 @@
 {% if request.htmx %}<title>{{ list_name }} · Pippins</title>{% endif %}{# htmx swaps update document.title from this #}
 {% if hero %}
 <img src="{% static 'core/pippins.svg' %}" alt="Pippins the bunny, wearing headphones"
-     class="mx-auto mb-2 size-40 sm:mx-0 sm:size-52" data-cy="hero-mascot">
+     class="mx-auto mb-2 size-40 sm:size-52" data-cy="hero-mascot">
 {% endif %}
 <header class="mb-6 flex flex-wrap items-end justify-between gap-4">
   <div>
