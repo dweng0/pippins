@@ -33,6 +33,7 @@ document.addEventListener("alpine:init", () => {
     shuffled: false,
     unshuffledQueue: [],
     lastSavedAt: 0,
+    channel: null,
 
     get current() {
       return this.queue[this.index] || null;
@@ -47,6 +48,7 @@ document.addEventListener("alpine:init", () => {
       audio.addEventListener("play", () => {
         this.playing = true;
         this.reportPlay();
+        if (this.channel) this.channel.postMessage({ type: "playing" });
       });
       audio.addEventListener("pause", () => {
         this.playing = false;
@@ -60,7 +62,17 @@ document.addEventListener("alpine:init", () => {
       audio.addEventListener("loadedmetadata", () => (this.duration = audio.duration));
       window.addEventListener("pagehide", () => this.save());
       this.bindMediaSession();
+      this.bindOtherTabs();
       this.restore();
+    },
+
+    // Same browser, several tabs: starting playback in one pauses the others.
+    bindOtherTabs() {
+      if (!("BroadcastChannel" in window)) return;
+      this.channel = new BroadcastChannel("pippins-player");
+      this.channel.onmessage = (e) => {
+        if (e.data && e.data.type === "playing" && !this.audio.paused) this.audio.pause();
+      };
     },
 
     // OS lock screen / notification metadata and hardware media keys.
