@@ -10,15 +10,20 @@
 <header class="mb-6 flex flex-wrap items-end justify-between gap-4">
   <div>
     <p class="text-xs uppercase tracking-widest opacity-60">Library</p>
-    <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl" data-cy="list-title">{{ list_name }}</h1>
+    {# tabindex=-1: player.js moves focus here after an htmx nav, so keyboard / screen reader users land on the new list. #}
+    <h1 tabindex="-1" class="text-3xl font-extrabold tracking-tight focus:outline-none sm:text-4xl" data-cy="list-title">{{ list_name }}</h1>
   </div>
   {% if q is not None %}
   <label class="input input-sm w-full sm:w-64">
     <svg class="size-4 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
     <input type="search" name="q" value="{{ q }}" placeholder="Search title, artist, album" aria-label="Search tracks"
            hx-get="{% url 'player:track_list' %}" hx-trigger="input changed delay:300ms, search"
-           hx-target="#track-rows" hx-swap="innerHTML" hx-replace-url="true" data-cy="search">
+           hx-target="#track-rows" hx-swap="innerHTML" hx-replace-url="true" hx-sync="this:replace"
+           hx-indicator="#search-busy" data-cy="search">
+    <span id="search-busy" class="htmx-indicator loading loading-spinner loading-xs" aria-hidden="true" data-cy="search-busy"></span>
   </label>
+  {# Outside #track-rows so it survives the swap; player.js copies the new track count in for screen readers. #}
+  <p id="list-status" class="sr-only" role="status" data-cy="list-status"></p>
   {% endif %}
 </header>
 

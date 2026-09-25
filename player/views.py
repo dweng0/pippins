@@ -30,7 +30,7 @@ def _render_list(request, tracks, list_name, empty_message, q=None, hero=False):
 
 @vary_on_headers("HX-Request", "HX-History-Restore-Request")
 def track_list(request):
-    listener = get_listener(request)
+    listener = get_listener(request, create=False)
     q = request.GET.get("q", "").strip()
     tracks = Track.objects.with_favourite_flag(listener).search(q)
     empty = f"No tracks match \u201c{q}\u201d." if q else "No tracks yet."
@@ -39,7 +39,7 @@ def track_list(request):
 
 @vary_on_headers("HX-Request", "HX-History-Restore-Request")
 def favourites(request):
-    listener = get_listener(request)
+    listener = get_listener(request, create=False)
     return _render_list(
         request, favourite_tracks(listener), "Favourites", "No favourites yet. Tap the heart on a track to keep it."
     )
@@ -48,17 +48,20 @@ def favourites(request):
 @require_POST
 def favourite_toggle(request, pk):
     track = get_object_or_404(Track, pk=pk)
-    track.is_fav = toggle_favourite(get_listener(request), track)
+    listener = get_listener(request)
+    toggle_favourite(listener, track)
+    track = Track.objects.with_favourite_flag(listener).get(pk=pk)  # is_fav from the one annotation, like the lists
     return render(request, "player/fav_button.html", {"t": track})
 
 
 @vary_on_headers("HX-Request", "HX-History-Restore-Request")
 def recent(request):
-    listener = get_listener(request)
+    listener = get_listener(request, create=False)
     return _render_list(request, recent_tracks(listener), "Recently played", "Nothing played yet.")
 
 
 @require_POST
 def played(request, pk):
-    record_play(get_listener(request), get_object_or_404(Track, pk=pk))
+    track = get_object_or_404(Track, pk=pk)  # before get_listener: a bad id must not create a Listener
+    record_play(get_listener(request), track)
     return HttpResponse(status=204)

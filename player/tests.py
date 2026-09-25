@@ -80,19 +80,31 @@ def test_load_catalogue_is_idempotent(tmp_path):
 
 
 @pytest.mark.django_db
-def test_get_listener_is_stable_per_session(client):
-    client.get(reverse("player:track_list"))
+def test_browsing_creates_no_listener_or_session(client, catalogue):
+    from django.contrib.sessions.models import Session
+
+    for name in ("player:track_list", "player:favourites", "player:recent"):
+        assert client.get(reverse(name)).status_code == 200
+    assert Listener.objects.count() == 0
+    assert Session.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_get_listener_is_stable_per_session(client, catalogue):
+    track = Track.objects.first()
+    client.post(reverse("player:favourite_toggle", args=[track.pk]))
     first = client.session["listener_id"]
-    client.get(reverse("player:track_list"))
+    client.post(reverse("player:played", args=[track.pk]))
     assert client.session["listener_id"] == first
     assert Listener.objects.count() == 1
 
 
 @pytest.mark.django_db
-def test_new_session_gets_new_listener(client):
-    client.get(reverse("player:track_list"))
+def test_new_session_gets_new_listener(client, catalogue):
+    track = Track.objects.first()
+    client.post(reverse("player:played", args=[track.pk]))
     client.cookies.clear()
-    client.get(reverse("player:track_list"))
+    client.post(reverse("player:played", args=[track.pk]))
     assert Listener.objects.count() == 2
 
 
@@ -203,6 +215,14 @@ def test_favourite_toggle_adds_then_removes(client, catalogue):
 
 
 @pytest.mark.django_db
+def test_favourite_button_keeps_its_id_so_htmx_restores_focus(client, catalogue):
+    track = Track.objects.first()
+    body = client.post(reverse("player:favourite_toggle", args=[track.pk])).content.decode()
+    assert f'id="fav-{track.pk}"' in body
+    assert f'id="fav-{track.pk}"' in client.get(reverse("player:track_list")).content.decode()
+
+
+@pytest.mark.django_db
 def test_favourite_toggle_rejects_get(client, catalogue):
     track = Track.objects.first()
     assert client.get(reverse("player:favourite_toggle", args=[track.pk])).status_code == 405
@@ -284,6 +304,105 @@ def test_recent_is_newest_first_and_deduped(client, catalogue):
     body = client.get(reverse("player:recent")).content.decode()
     assert body.count('data-cy="track-row"') == 2
     assert body.index(a.title) < body.index(b.title)
+
+
+@pytest.mark.django_db
+def test_played_rejects_get_and_unknown_tracks(client, catalogue):
+    track = Track.objects.first()
+    assert client.get(reverse("player:played", args=[track.pk])).status_code == 405
+    assert client.post(reverse("player:played", args=[99999])).status_code == 404
+    assert Listener.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_played_requires_csrf_token(catalogue):
+    from django.test import Client
+
+    from player.models import Play
+
+    track = Track.objects.first()
+    assert Client(enforce_csrf_checks=True).post(reverse("player:played", args=[track.pk])).status_code == 403
+    assert Play.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_repeat_play_of_same_track_is_deduped_but_replay_after_another_counts(catalogue):
+    from player.models import Play
+    from player.services import record_play
+
+    a, b = Track.objects.all()[:2]
+    listener = Listener.objects.create()
+    assert record_play(listener, a) is not None
+    assert record_play(listener, a) is None  # double-fired play event / replayed POST
+    assert record_play(listener, b) is not None
+    assert record_play(listener, a) is not None
+    assert Play.objects.count() == 3
+
+
+@pytest.mark.django_db
+def test_repeat_play_counts_again_after_the_dedupe_window(catalogue):
+    from datetime import timedelta
+
+    from player.models import Play
+    from player.services import PLAY_DEDUPE_SECONDS, record_play
+
+    track = Track.objects.first()
+    listener = Listener.objects.create()
+    first = record_play(listener, track)
+    Play.objects.filter(pk=first.pk).update(played_at=first.played_at - timedelta(seconds=PLAY_DEDUPE_SECONDS + 1))
+    assert record_play(listener, track) is not None
+
+
+@pytest.mark.django_db
+def test_play_history_is_capped_per_listener(catalogue, monkeypatch):
+    from player import services
+    from player.models import Play
+
+    monkeypatch.setattr(services, "PLAY_HISTORY_LIMIT", 3)
+    tracks = list(Track.objects.all())
+    listener, other = Listener.objects.create(), Listener.objects.create()
+    services.record_play(other, tracks[0])
+    for t in tracks:
+        services.record_play(listener, t)
+
+    kept = list(Play.objects.filter(listener=listener).values_list("track_id", flat=True))
+    assert kept == [t.pk for t in reversed(tracks[-3:])]
+    assert Play.objects.filter(listener=other).count() == 1  # another Listener's history is untouched
+
+
+@pytest.mark.django_db
+def test_prune_listeners_removes_only_listeners_past_session_age(catalogue, settings):
+    from datetime import timedelta
+
+    from django.core.management import call_command
+    from django.utils import timezone
+
+    from player.models import Favourite, Play
+
+    track = Track.objects.first()
+    old, fresh = Listener.objects.create(), Listener.objects.create()
+    Listener.objects.filter(pk=old.pk).update(
+        created_at=timezone.now() - timedelta(seconds=settings.SESSION_COOKIE_AGE + 60)
+    )
+    for listener in (old, fresh):
+        Favourite.objects.create(listener=listener, track=track)
+        Play.objects.create(listener=listener, track=track)
+
+    call_command("prune_listeners")
+    assert list(Listener.objects.all()) == [fresh]
+    assert Favourite.objects.count() == Play.objects.count() == 1
+
+
+def test_every_embedded_cover_is_committed(tmp_path):
+    """Covers are extracted by load_tracks at boot, after the image's collectstatic. A cover that
+    isn't committed would never be collected, so every embedded one must already be in the repo."""
+    from player.services import COVER_DIR, read_track_file
+
+    for path in sorted(AUDIO_DIR.glob("*.mp3")):
+        read_track_file(path, cover_dir=tmp_path)
+    extracted = {p.name for p in tmp_path.iterdir()}
+    committed = {p.name for p in COVER_DIR.iterdir()}
+    assert extracted <= committed, f"commit these covers: {sorted(extracted - committed)}"
 
 
 @pytest.mark.django_db

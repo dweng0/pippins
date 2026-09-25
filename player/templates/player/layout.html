@@ -40,5 +40,6 @@
 {% endblock %}
 {% block scripts %}
   {# Before Alpine (both defer, so document order) so the store exists when Alpine initialises. #}
+  <script defer src="{% static 'player/queue.js' %}"></script>
   <script defer src="{% static 'player/player.js' %}"></script>
 {% endblock %}

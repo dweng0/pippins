@@ -1,11 +1,13 @@
 import logging
+from datetime import timedelta
 from pathlib import Path
 
+from django.conf import settings
+from django.db.models import Max
+from django.utils import timezone
 from django.utils.text import slugify
 from mutagen import MutagenError
 from mutagen.mp3 import MP3
-
-from django.db.models import Max
 
 from .models import Favourite, Listener, Play, Track
 
@@ -15,16 +17,23 @@ COVER_DIR = APP_STATIC / "player" / "covers"
 
 SESSION_KEY = "listener_id"
 
+# The played endpoint is open to any session (no accounts yet), so bound what one client can write.
+PLAY_DEDUPE_SECONDS = 30  # same Track again within this window: a double-fired event or replayed POST
+PLAY_HISTORY_LIMIT = 200  # newest Plays kept per Listener; Recently played shows 20 distinct Tracks
+
 log = logging.getLogger(__name__)
 
 
-def get_listener(request):
-    """Return the Listener for this browser session, creating one on first visit."""
+def get_listener(request, create=True):
+    """Return the Listener for this browser session. Reads pass create=False: a Listener (and its
+    session row) is only made on the first write, so crawlers and one-off visits leave nothing behind."""
     listener_id = request.session.get(SESSION_KEY)
     if listener_id:
         listener = Listener.objects.filter(pk=listener_id).first()
         if listener:
             return listener
+    if not create:
+        return None
     listener = Listener.objects.create()
     request.session[SESSION_KEY] = listener.pk
     return listener
@@ -41,23 +50,46 @@ def toggle_favourite(listener, track):
 
 def favourite_tracks(listener):
     """The Listener's Favourites, most recently added first."""
+    if listener is None:
+        return Track.objects.none()
     return Track.objects.with_favourite_flag(listener).filter(favourited_by__listener=listener).order_by(
         "-favourited_by__created_at"
     )
 
 
 def record_play(listener, track):
-    return Play.objects.create(listener=listener, track=track)
+    """Record a Play; returns None when it repeats the Listener's latest Play within PLAY_DEDUPE_SECONDS.
+    Trims the Listener's history to PLAY_HISTORY_LIMIT so a scripted client can't grow the table unbounded."""
+    latest = Play.objects.filter(listener=listener).first()
+    if latest and latest.track_id == track.id and timezone.now() - latest.played_at < timedelta(seconds=PLAY_DEDUPE_SECONDS):
+        return None
+    play = Play.objects.create(listener=listener, track=track)
+    stale = list(Play.objects.filter(listener=listener).values_list("pk", flat=True)[PLAY_HISTORY_LIMIT:])
+    if stale:
+        Play.objects.filter(pk__in=stale).delete()
+    return play
 
 
 def recent_tracks(listener, limit=20):
     """Tracks the Listener has played, newest first, each Track once."""
+    if listener is None:
+        return Track.objects.none()
     return (
         Track.objects.with_favourite_flag(listener)
         .filter(plays__listener=listener)
         .annotate(last_played=Max("plays__played_at"))
         .order_by("-last_played")[:limit]
     )
+
+
+def prune_listeners():
+    """Delete Listeners no session can reach any more; returns how many.
+
+    A session's expiry is fixed when get_listener saves it (nothing else writes the session), so a
+    Listener older than SESSION_COOKIE_AGE has lost its cookie. Favourites and Plays cascade."""
+    cutoff = timezone.now() - timedelta(seconds=settings.SESSION_COOKIE_AGE)
+    deleted, _ = Listener.objects.filter(created_at__lt=cutoff).delete()
+    return deleted
 
 
 def parse_filename(stem):

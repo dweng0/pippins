@@ -4,9 +4,9 @@ const STORAGE_KEY = "pippins.player.v1";
 
 function readSaved() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return PlayerQueue.parseSaved(localStorage.getItem(STORAGE_KEY));
   } catch {
-    return null; // storage disabled (private mode) or corrupt: start fresh
+    return null; // storage disabled (private mode): start fresh
   }
 }
 
@@ -19,6 +19,7 @@ function writeSaved(state) {
 }
 
 // Global player store: owns the single <audio> element and the Queue (see CONTEXT.md).
+// Queue rules live in queue.js (unit-tested); this is the wiring to <audio>, storage and other tabs.
 // Loaded before Alpine so the store exists when Alpine initialises.
 document.addEventListener("alpine:init", () => {
   Alpine.store("player", {
@@ -132,17 +133,16 @@ document.addEventListener("alpine:init", () => {
     // Restores paused: browsers block autoplay without a user gesture.
     restore() {
       const s = readSaved();
-      if (!s || !Array.isArray(s.queue)) return;
-      if (typeof s.volume === "number") this.setVolume(s.volume);
-      this.shuffled = !!s.shuffled;
-      this.unshuffledQueue = Array.isArray(s.unshuffledQueue) ? s.unshuffledQueue : [];
+      if (!s) return;
+      if (s.volume !== null) this.audio.volume = this.volume = s.volume; // not setVolume: it would save a half-restored state
+      this.shuffled = s.shuffled;
+      this.unshuffledQueue = s.unshuffledQueue;
       this.queue = s.queue;
-      if (!this.queue[s.index]) return;
+      if (s.index < 0) return;
       this.load(s.index, false);
-      const position = Number(s.position) || 0;
-      if (position > 0) {
-        this.currentTime = position;
-        this.audio.addEventListener("loadedmetadata", () => (this.audio.currentTime = position), { once: true });
+      if (s.position > 0) {
+        this.currentTime = s.position;
+        this.audio.addEventListener("loadedmetadata", () => (this.audio.currentTime = s.position), { once: true });
       }
     },
 
@@ -154,7 +154,6 @@ document.addEventListener("alpine:init", () => {
       this.load(this.index, true);
     },
 
-    // Shuffle reorders the Queue with the current track first; unshuffle restores the original order.
     toggleShuffle() {
       this.shuffled = !this.shuffled;
       if (this.shuffled) this.shuffle();
@@ -163,23 +162,18 @@ document.addEventListener("alpine:init", () => {
     },
 
     shuffle() {
-      this.unshuffledQueue = this.queue.slice();
-      const rest = this.queue.filter((_, i) => i !== this.index);
-      for (let i = rest.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [rest[i], rest[j]] = [rest[j], rest[i]];
-      }
-      const current = this.queue[this.index];
-      this.queue = current ? [current, ...rest] : rest;
-      this.index = current ? 0 : -1;
+      const s = PlayerQueue.shuffle(this.queue, this.index);
+      this.queue = s.queue;
+      this.index = s.index;
+      this.unshuffledQueue = s.original;
     },
 
     unshuffle() {
       if (!this.unshuffledQueue.length) return;
-      const id = this.currentId;
-      this.queue = this.unshuffledQueue;
+      const u = PlayerQueue.unshuffle(this.unshuffledQueue, this.currentId);
+      this.queue = u.queue;
+      this.index = u.index;
       this.unshuffledQueue = [];
-      this.index = this.queue.findIndex((t) => t.id === id);
     },
 
     load(i, autoplay) {
@@ -214,16 +208,15 @@ document.addEventListener("alpine:init", () => {
       this.audio.paused ? this.play() : this.audio.pause();
     },
 
-    // End of Queue stops playback (no repeat).
     next() {
-      if (this.index < this.queue.length - 1) this.load(this.index + 1, true);
+      const i = PlayerQueue.nextIndex(this.index, this.queue.length);
+      if (i >= 0) this.load(i, true);
       else this.audio.pause();
     },
 
-    // Like most players: after 3s, "previous" restarts the current track.
     prev() {
       if (!this.current) return;
-      if (this.audio.currentTime > 3 || this.index === 0) this.audio.currentTime = 0;
+      if (PlayerQueue.prevRestarts(this.index, this.audio.currentTime)) this.audio.currentTime = 0;
       else this.load(this.index - 1, true);
     },
 
@@ -256,8 +249,7 @@ document.addEventListener("alpine:init", () => {
     },
 
     fmt(seconds) {
-      const s = Math.floor(seconds || 0);
-      return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+      return PlayerQueue.formatTime(seconds);
     },
   });
 });
@@ -270,14 +262,31 @@ function csrfToken() {
   }
 }
 
-// The sidebar isn't re-rendered by htmx nav, so its highlight follows the URL here.
+// The sidebar isn't re-rendered by htmx nav, so its highlight (and aria-current) follows the URL here.
 function markActiveNav() {
   document.querySelectorAll("[data-nav]").forEach((a) => {
     const active = a.pathname === location.pathname;
     a.classList.toggle("menu-active", active);
     a.classList.toggle("btn-active", active);
+    if (active) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
   });
 }
 document.addEventListener("DOMContentLoaded", markActiveNav);
 document.addEventListener("htmx:pushedIntoHistory", markActiveNav);
 document.addEventListener("htmx:historyRestore", markActiveNav);
+
+document.addEventListener("htmx:afterSettle", (e) => {
+  const target = e.detail.target;
+  // Nav swapped #main: without this, focus stays on the nav link and nothing says the page changed.
+  if (target.id === "main") {
+    const heading = target.querySelector('[data-cy="list-title"]');
+    if (heading) heading.focus({ preventScroll: true });
+  }
+  // Search swapped the rows: announce the new count ("2 tracks").
+  if (target.id === "track-rows") {
+    const status = document.getElementById("list-status");
+    const count = target.querySelector('[data-cy="track-count"]');
+    if (status && count) status.textContent = count.textContent;
+  }
+});
