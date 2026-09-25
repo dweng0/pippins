@@ -1,10 +1,8 @@
-from urllib.parse import quote
-
 import pytest
 from django.urls import reverse
 
 from player.models import Listener, Track
-from player.services import load_catalogue, parse_filename
+from player.services import AUDIO_DIR, load_catalogue, parse_filename
 
 
 @pytest.fixture
@@ -29,10 +27,28 @@ def test_load_catalogue_reads_tags_and_falls_back_to_filename(catalogue):
     assert (catalogue / "komiku-bad-guys-hq.jpg").exists()
     assert tagged.duration_seconds > 60
 
-    untagged = Track.objects.get(slug="mr-smith-3djc")
-    assert (untagged.title, untagged.artist) == ("3DJC", "Mr Smith")
-    assert untagged.cover_path == ""
-    assert untagged.cover_url.endswith("placeholder.svg")
+    no_cover = Track.objects.get(slug="mr-smith-3djc")
+    assert (no_cover.title, no_cover.artist) == ("3DJC", "Mr Smith")
+    assert no_cover.audio_path == "player/audio/mr-smith-3djc.mp3"
+    assert no_cover.cover_path == ""
+    assert no_cover.cover_url.endswith("placeholder.svg")
+
+
+@pytest.mark.django_db
+def test_untagged_file_falls_back_to_filename(tmp_path):
+    import shutil
+
+    from mutagen.id3 import ID3
+
+    audio = tmp_path / "audio"
+    audio.mkdir()
+    copy = audio / "Some Artist - Some Title.mp3"
+    shutil.copy(AUDIO_DIR / "mr-smith-3djc.mp3", copy)
+    ID3(copy).delete()
+
+    load_catalogue(audio_dir=audio, cover_dir=tmp_path)
+    track = Track.objects.get()
+    assert (track.slug, track.artist, track.title) == ("some-artist-some-title", "Some Artist", "Some Title")
 
 
 @pytest.mark.django_db
@@ -90,7 +106,7 @@ def test_static_mp3_supports_range_requests(client, settings):
     # pytest-django runs DEBUG=False without collectstatic; let WhiteNoise resolve via finders.
     settings.WHITENOISE_USE_FINDERS = True
     settings.WHITENOISE_AUTOREFRESH = True
-    url = "/static/player/audio/" + quote("Komiku - Bad Guys HQ.mp3")
+    url = "/static/player/audio/komiku-bad-guys-hq.mp3"
     response = client.get(url, HTTP_RANGE="bytes=1000-1999")
     assert response.status_code == 206
     assert response["Content-Range"].startswith("bytes 1000-1999/")

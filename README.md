@@ -36,7 +36,7 @@ Browser <audio> ──Range──► Cloudflare edge ──(miss only)──► 
 - **Tracks are ~320 kbps** (≈40 KB/s real-time); browsers buffer ahead, so a play is roughly one 3–7 MB fetch plus small range fetches on seek.
 
 ### Known limitations / next steps
-- Hashed filenames (`ManifestStaticFilesStorage`) + 1-year immutable caching (#8, #22).
+- Hashed filenames (`ManifestStaticFilesStorage`) + 1-year immutable caching (#8). Audio files are already slug-named with full ID3 tags (#22), so this is a storage-backend switch.
 - Cold-cache stampede: many simultaneous misses at one PoP can all reach origin (8 threads).
 - At real scale, move audio to object storage with free egress (e.g. Cloudflare R2) so the box serves none of it.
 - Cloudflare free-plan terms around serving large media volumes should be checked before any real traffic.
@@ -44,12 +44,12 @@ Browser <audio> ──Range──► Cloudflare edge ──(miss only)──► 
 ### Measuring it (to do)
 ```
 # edge cache: expect 206, cf-cache-status MISS then HIT, Age increasing
-URL='https://pippins.run/static/player/audio/Komiku%20-%20Bad%20Guys%20HQ.mp3'
+URL='https://pippins.run/static/player/audio/komiku-bad-guys-hq.mp3'
 curl -s -o /dev/null -D - -H 'Range: bytes=0-1023' "$URL" | grep -iE 'HTTP/|cf-cache-status|age|content-range'
 curl -s -o /dev/null -w 'ttfb=%{time_starttransfer}s total=%{time_total}s\n' "$URL"   # run twice: miss vs hit
 
 # throughput: edge vs origin (origin only reachable from Cloudflare ranges, so run the origin test on the box via SSM)
 oha -z 20s -c 20 "$URL"
-oha -z 20s -c 20 'http://localhost/static/player/audio/Komiku%20-%20Bad%20Guys%20HQ.mp3'
+oha -z 20s -c 20 'http://localhost/static/player/audio/komiku-bad-guys-hq.mp3'
 ```
 Results table goes here (req/s, p50/p99 TTFB, MB/s; edge vs origin).
