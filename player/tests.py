@@ -151,3 +151,36 @@ def test_track_list_marks_favourites(client, catalogue):
     body = client.get(reverse("player:track_list")).content.decode()
     assert body.count('data-fav="true"') == 1
     assert body.count('data-fav="false"') == 5
+
+
+@pytest.mark.django_db
+def test_search_matches_title_artist_or_album_case_insensitively(catalogue):
+    assert Track.objects.search("komiku").count() == 2
+    assert Track.objects.search("PUNK").count() == 1
+    assert Track.objects.search("hyper metal").count() == 2  # album
+    assert Track.objects.search("pew").count() == 1
+    assert Track.objects.search("  ").count() == 6
+    assert Track.objects.search("nothing-like-this").count() == 0
+
+
+@pytest.mark.django_db
+def test_search_box_gets_rows_partial_only(client, catalogue):
+    response = client.get(
+        reverse("player:track_list"), {"q": "komiku"}, HTTP_HX_REQUEST="true", HTTP_HX_TRIGGER_NAME="q"
+    )
+    body = response.content.decode()
+    assert body.count('data-cy="track-row"') == 2
+    assert 'id="list-data"' in body  # Queue source follows the filtered list
+    assert 'data-cy="list-title"' not in body
+
+
+@pytest.mark.django_db
+def test_search_full_page_keeps_query_and_shows_empty_message(client, catalogue):
+    body = client.get(reverse("player:track_list"), {"q": "zzz"}).content.decode()
+    assert 'value="zzz"' in body
+    assert "No tracks match" in body
+
+
+@pytest.mark.django_db
+def test_favourites_page_has_no_search_box(client, catalogue):
+    assert 'data-cy="search"' not in client.get(reverse("player:favourites")).content.decode()

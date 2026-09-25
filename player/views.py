@@ -6,12 +6,13 @@ from .models import Track
 from .services import favourite_tracks, get_listener, toggle_favourite
 
 
-def _render_list(request, tracks, list_name, empty_message):
-    """Render a track list. htmx nav swaps only #main; history restores get the full page."""
+def _render_list(request, tracks, list_name, empty_message, q=None):
+    """Render a track list. htmx nav swaps only #main; the search box swaps only the rows;
+    history restores get the full page."""
     tracks = list(tracks)
     template = "player/track_list.html"
     if request.htmx and not request.htmx.history_restore_request:
-        template += "#tracks"
+        template += "#rows" if request.htmx.trigger_name == "q" else "#tracks"
     return render(
         request,
         template,
@@ -20,6 +21,7 @@ def _render_list(request, tracks, list_name, empty_message):
             "queue": [t.as_queue_item() for t in tracks],
             "list_name": list_name,
             "empty_message": empty_message,
+            "q": q,
         },
     )
 
@@ -27,7 +29,10 @@ def _render_list(request, tracks, list_name, empty_message):
 @vary_on_headers("HX-Request", "HX-History-Restore-Request")
 def track_list(request):
     listener = get_listener(request)
-    return _render_list(request, Track.objects.with_favourite_flag(listener), "All tracks", "No tracks yet.")
+    q = request.GET.get("q", "").strip()
+    tracks = Track.objects.with_favourite_flag(listener).search(q)
+    empty = f"No tracks match \u201c{q}\u201d." if q else "No tracks yet."
+    return _render_list(request, tracks, "All tracks", empty, q=q)
 
 
 @vary_on_headers("HX-Request", "HX-History-Restore-Request")

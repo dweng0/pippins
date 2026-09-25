@@ -3,15 +3,24 @@
 {% block title %}{{ list_name }} · Pippins{% endblock %}
 {% block main %}{% partialdef tracks inline %}
 <title>{{ list_name }} · Pippins</title>
-{{ queue|json_script:"list-data" }}
-<header class="mb-6 flex items-end justify-between gap-4">
+<header class="mb-6 flex flex-wrap items-end justify-between gap-4">
   <div>
     <p class="text-xs uppercase tracking-widest opacity-60">Playlist</p>
     <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl" data-cy="list-title">{{ list_name }}</h1>
-    <p class="mt-1 text-sm opacity-60">{{ tracks|length }} track{{ tracks|length|pluralize }}</p>
   </div>
+  {% if q is not None %}
+  <label class="input input-sm w-full sm:w-64">
+    <svg class="size-4 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="search" name="q" value="{{ q }}" placeholder="Search title, artist, album" aria-label="Search tracks"
+           hx-get="{% url 'player:track_list' %}" hx-trigger="input changed delay:300ms, search"
+           hx-target="#track-rows" hx-swap="innerHTML" hx-replace-url="true" data-cy="search">
+  </label>
+  {% endif %}
 </header>
 
+<div id="track-rows">{% partialdef rows inline %}
+{{ queue|json_script:"list-data" }}
+<p class="mb-3 text-sm opacity-60" data-cy="track-count">{{ tracks|length }} track{{ tracks|length|pluralize }}</p>
 {% if tracks %}
 <ol x-data class="flex flex-col gap-1" data-cy="track-list">
   {% for t in tracks %}
@@ -37,4 +46,5 @@
 {% else %}
 <div class="alert" data-cy="empty">{{ empty_message }}</div>
 {% endif %}
+{% endpartialdef %}</div>
 {% endpartialdef %}{% endblock %}

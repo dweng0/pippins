@@ -45,6 +45,15 @@ describe("Player", () => {
       cy.get('[data-cy="track-row"]').should("have.length", 1).and("contain", title);
     });
   });
+
+  it("search filters the list and the Queue follows it", () => {
+    cy.get('[data-cy="search"]').type("komiku");
+    cy.get('[data-cy="track-row"]').should("have.length", 2);
+    cy.location("search").should("eq", "?q=komiku");
+    cy.get('[data-cy="track-row"]').eq(1).click();
+    cy.get('[data-cy="next"]').click(); // last of the filtered Queue: stays put
+    cy.get('[data-cy="now-playing-artist"]').should("have.text", "Komiku");
+  });
 });
 
 describe("Health check", () => {

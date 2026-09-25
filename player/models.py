@@ -7,6 +7,15 @@ class TrackQuerySet(models.QuerySet):
         """Annotate each Track with is_fav for this Listener (one query, no N+1)."""
         return self.annotate(is_fav=models.Exists(Favourite.objects.filter(listener=listener, track=models.OuterRef("pk"))))
 
+    def search(self, q):
+        """Case-insensitive match on title, artist or album. Blank q matches everything."""
+        q = (q or "").strip()
+        if not q:
+            return self
+        return self.filter(
+            models.Q(title__icontains=q) | models.Q(artist__icontains=q) | models.Q(album__icontains=q)
+        )
+
 
 class Track(models.Model):
     """One playable song in the catalogue. Audio and cover are static file paths."""
