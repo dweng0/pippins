@@ -36,6 +36,26 @@ def test_load_catalogue_reads_tags_and_falls_back_to_filename(catalogue):
 
 
 @pytest.mark.django_db
+def test_unreadable_file_is_skipped_and_logged(tmp_path, caplog):
+    import shutil
+
+    audio = tmp_path / "audio"
+    audio.mkdir()
+    shutil.copy(AUDIO_DIR / "mr-smith-3djc.mp3", audio / "good.mp3")
+    (audio / "corrupt.mp3").write_bytes(b"not an mp3 at all" * 100)
+
+    assert load_catalogue(audio_dir=audio, cover_dir=tmp_path) == (1, 0)
+    assert "corrupt.mp3" in caplog.text
+
+
+@pytest.mark.django_db
+def test_empty_catalogue_shows_empty_state(client):
+    body = client.get(reverse("player:track_list")).content.decode()
+    assert 'data-cy="empty"' in body
+    assert "No tracks yet." in body
+
+
+@pytest.mark.django_db
 def test_untagged_file_falls_back_to_filename(tmp_path):
     import shutil
 

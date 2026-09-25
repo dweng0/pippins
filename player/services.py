@@ -1,7 +1,8 @@
+import logging
 from pathlib import Path
 
 from django.utils.text import slugify
-from mutagen.id3 import ID3NoHeaderError
+from mutagen import MutagenError
 from mutagen.mp3 import MP3
 
 from django.db.models import Max
@@ -13,6 +14,8 @@ AUDIO_DIR = APP_STATIC / "player" / "audio"
 COVER_DIR = APP_STATIC / "player" / "covers"
 
 SESSION_KEY = "listener_id"
+
+log = logging.getLogger(__name__)
 
 
 def get_listener(request):
@@ -96,12 +99,16 @@ def read_track_file(path, cover_dir=COVER_DIR):
 
 
 def load_catalogue(audio_dir=AUDIO_DIR, cover_dir=COVER_DIR):
-    """Create or update a Track per mp3 in audio_dir. Idempotent; returns (created, updated)."""
+    """Create or update a Track per mp3 in audio_dir. Idempotent; returns (created, updated).
+
+    An unreadable file is logged and skipped: load_tracks runs before gunicorn on every deploy,
+    so one bad file must not take the site down."""
     created = updated = 0
     for path in sorted(Path(audio_dir).glob("*.mp3")):
         try:
             meta = read_track_file(path, cover_dir)
-        except ID3NoHeaderError:
+        except (MutagenError, OSError) as exc:
+            log.warning("Skipping unreadable audio file %s: %s", path.name, exc)
             continue
         _, was_created = Track.objects.update_or_create(
             slug=meta["slug"],
