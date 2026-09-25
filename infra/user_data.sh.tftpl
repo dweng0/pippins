@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euxo pipefail
 
-# 1GB RAM box running Postgres + Redis + gunicorn + image builds: add swap.
+# 1GB RAM box running Postgres + gunicorn + image builds: add swap.
 fallocate -l 1G /swapfile
 chmod 600 /swapfile
 mkswap /swapfile

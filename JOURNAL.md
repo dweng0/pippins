@@ -102,6 +102,7 @@
 **Decisions / why**
 - Measured with parallel `curl` instead of `oha`: `oha` isn't on either machine, and installing tools on the prod box just for this isn't worth it.
 - The "Redis roles" item under earlier Next lists is obsolete: Redis was dropped in #23.
+- Fixed the stale Redis comment in `infra/user_data.sh.tftpl`. The afternoon entry was wrong that this would replace the instance: `main.tf` has `ignore_changes = [user_data, ami]`, so a template edit never touches the running box (it only applies on a rebuild).
 
 **Next**
 - Stop the AMI's built-in ECS agent on the box (it's not used and restarts on a loop), and fix it in `user_data`/AMI choice on the Phase 2 rebuild.
