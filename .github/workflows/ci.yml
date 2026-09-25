@@ -44,6 +44,13 @@ jobs:
       - name: Unit / integration tests
         run: pytest
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: JS unit tests (Queue logic, no deps)
+        run: node --test "player/js_tests/*.test.js"
+
   e2e:
     runs-on: ubuntu-latest
     needs: test
