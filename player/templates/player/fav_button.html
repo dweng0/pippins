@@ -1,0 +1,8 @@
+<button type="button" class="fav-btn btn btn-ghost btn-circle btn-sm {% if t.is_fav %}text-accent{% else %}opacity-50 hover:opacity-100{% endif %}"
+        hx-post="{% url 'player:favourite_toggle' t.id %}" hx-target="this" hx-swap="outerHTML" @click.stop
+        aria-pressed="{{ t.is_fav|yesno:'true,false' }}" aria-label="{{ t.is_fav|yesno:'Remove from,Add to' }} Favourites"
+        data-cy="fav" data-fav="{{ t.is_fav|yesno:'true,false' }}">
+  <svg class="size-5" viewBox="0 0 24 24" fill="{{ t.is_fav|yesno:'currentColor,none' }}" stroke="currentColor" stroke-width="2" aria-hidden="true">
+    <path stroke-linejoin="round" d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/>
+  </svg>
+</button>

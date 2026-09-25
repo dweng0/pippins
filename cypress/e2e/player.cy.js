@@ -33,6 +33,18 @@ describe("Player", () => {
       cy.get('[data-cy="now-playing-title"]').should("have.text", first);
     });
   });
+
+  it("hearting a track adds it to Favourites without starting playback", () => {
+    titleOfRow(2).then((title) => {
+      cy.get('[data-cy="track-row"]').eq(2).find('[data-cy="fav"]').click();
+      cy.get('[data-cy="track-row"]').eq(2).find('[data-cy="fav"]').should("have.attr", "data-fav", "true");
+      cy.get('[data-cy="now-playing-title"]').should("contain", "Pick a track");
+      cy.get('[data-cy="nav-favourites"]').click();
+      cy.location("pathname").should("eq", "/favourites/");
+      cy.get('[data-cy="list-title"]').should("contain", "Favourites");
+      cy.get('[data-cy="track-row"]').should("have.length", 1).and("contain", title);
+    });
+  });
 });
 
 describe("Health check", () => {

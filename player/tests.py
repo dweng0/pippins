@@ -104,3 +104,50 @@ def test_mmss_filter_formats_durations():
     assert mmss(132.4) == "2:12"
     assert mmss(59) == "0:59"
     assert mmss(None) == "0:00"
+
+
+@pytest.mark.django_db
+def test_favourite_toggle_adds_then_removes(client, catalogue):
+    from player.models import Favourite
+
+    track = Track.objects.first()
+    url = reverse("player:favourite_toggle", args=[track.pk])
+
+    response = client.post(url, HTTP_HX_REQUEST="true")
+    assert response.status_code == 200
+    assert 'data-fav="true"' in response.content.decode()
+    assert Favourite.objects.count() == 1
+
+    response = client.post(url, HTTP_HX_REQUEST="true")
+    assert 'data-fav="false"' in response.content.decode()
+    assert Favourite.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_favourite_toggle_rejects_get(client, catalogue):
+    track = Track.objects.first()
+    assert client.get(reverse("player:favourite_toggle", args=[track.pk])).status_code == 405
+
+
+@pytest.mark.django_db
+def test_favourites_view_lists_only_this_listeners_favourites(client, catalogue):
+    a, b = Track.objects.all()[:2]
+    client.post(reverse("player:favourite_toggle", args=[a.pk]))
+
+    body = client.get(reverse("player:favourites")).content.decode()
+    assert body.count('data-cy="track-row"') == 1
+    assert a.title in body
+
+    client.cookies.clear()  # a different Listener sees none
+    body = client.get(reverse("player:favourites")).content.decode()
+    assert body.count('data-cy="track-row"') == 0
+    assert 'data-cy="empty"' in body
+
+
+@pytest.mark.django_db
+def test_track_list_marks_favourites(client, catalogue):
+    track = Track.objects.first()
+    client.post(reverse("player:favourite_toggle", args=[track.pk]))
+    body = client.get(reverse("player:track_list")).content.decode()
+    assert body.count('data-fav="true"') == 1
+    assert body.count('data-fav="false"') == 5

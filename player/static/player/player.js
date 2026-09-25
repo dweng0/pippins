@@ -84,3 +84,15 @@ document.addEventListener("alpine:init", () => {
     },
   });
 });
+
+// The sidebar isn't re-rendered by htmx nav, so its highlight follows the URL here.
+function markActiveNav() {
+  document.querySelectorAll("[data-nav]").forEach((a) => {
+    const active = a.pathname === location.pathname;
+    a.classList.toggle("menu-active", active);
+    a.classList.toggle("btn-active", active);
+  });
+}
+document.addEventListener("DOMContentLoaded", markActiveNav);
+document.addEventListener("htmx:pushedIntoHistory", markActiveNav);
+document.addEventListener("htmx:historyRestore", markActiveNav);

@@ -4,7 +4,7 @@ from django.utils.text import slugify
 from mutagen.id3 import ID3NoHeaderError
 from mutagen.mp3 import MP3
 
-from .models import Listener, Track
+from .models import Favourite, Listener, Track
 
 APP_STATIC = Path(__file__).resolve().parent / "static"
 AUDIO_DIR = APP_STATIC / "player" / "audio"
@@ -23,6 +23,22 @@ def get_listener(request):
     listener = Listener.objects.create()
     request.session[SESSION_KEY] = listener.pk
     return listener
+
+
+def toggle_favourite(listener, track):
+    """Add the Track to the Listener's Favourites, or remove it if already there. Returns the new state."""
+    deleted, _ = Favourite.objects.filter(listener=listener, track=track).delete()
+    if deleted:
+        return False
+    Favourite.objects.get_or_create(listener=listener, track=track)
+    return True
+
+
+def favourite_tracks(listener):
+    """The Listener's Favourites, most recently added first."""
+    return Track.objects.with_favourite_flag(listener).filter(favourited_by__listener=listener).order_by(
+        "-favourited_by__created_at"
+    )
 
 
 def parse_filename(stem):

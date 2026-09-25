@@ -15,7 +15,7 @@
 {% if tracks %}
 <ol x-data class="flex flex-col gap-1" data-cy="track-list">
   {% for t in tracks %}
-  <li class="track-row group grid cursor-pointer grid-cols-[2rem_3rem_1fr_auto] items-center gap-3 rounded-box px-3 py-2 transition-colors hover:bg-base-300"
+  <li class="track-row group grid cursor-pointer grid-cols-[2rem_3rem_1fr_auto_auto] items-center gap-3 rounded-box px-3 py-2 transition-colors hover:bg-base-300"
       style="--i: {{ forloop.counter0 }}"
       data-cy="track-row" data-track-id="{{ t.id }}"
       :class="{ 'bg-base-300 text-primary': $store.player.currentId === {{ t.id }} }"
@@ -30,10 +30,11 @@
       <span class="block truncate text-sm opacity-60">{{ t.artist }}{% if t.album %} · {{ t.album }}{% endif %}</span>
     </span>
     <span class="text-sm opacity-60 tabular-nums">{{ t.duration_seconds|mmss }}</span>
+    {% include "player/fav_button.html" %}
   </li>
   {% endfor %}
 </ol>
 {% else %}
-<div class="alert" data-cy="empty">No tracks yet. Run <code>python manage.py load_tracks</code>.</div>
+<div class="alert" data-cy="empty">{{ empty_message }}</div>
 {% endif %}
 {% endpartialdef %}{% endblock %}
