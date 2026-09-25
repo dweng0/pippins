@@ -84,6 +84,8 @@ jobs:
 
       - run: python manage.py migrate --noinput
 
+      - run: python manage.py load_tracks
+
       - name: Build CSS
         run: tailwindcss-extra -i assets/input.css -o static/css/app.css --minify
 
