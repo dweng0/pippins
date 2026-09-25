@@ -77,3 +77,7 @@ Investigated, deliberately not built. Same-browser tabs already hand off (only o
   - The spec expects plain `ws://` on the LAN. From a page served over HTTPS (Cloudflare) the browser blocks that as mixed content, so it would need `wss://` through Cloudflare and a server-side relay.
   - It's aimed at speakers on one network, not browsers on the internet.
 - **If revisited:** Django Channels (or a small separate asyncio service) behind `wss://`. Start with "follow this Listener": a second device mirrors track + position using server timestamps, which is good enough without sample-accurate sync. Keep device state on the device (ADR-0001).
+
+## Known limitations
+
+- **No playlists (#18).** This stretch goal wasn't built in the time box. Nearest today: Favourites (one saved list per Listener) and the Queue (the list you started playing from, not saved). If built: a `Playlist` owned by a Listener (ADR-0001) with ordered `PlaylistEntry` rows (Track + position), shown as another track list in the sidebar, with an "Add to playlist" control next to the heart.
