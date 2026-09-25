@@ -19,7 +19,7 @@ class TrackQuerySet(models.QuerySet):
 
 
 class Track(models.Model):
-    """One playable song in the catalogue. Audio and cover are static file paths."""
+    """One playable Track in the catalogue. Audio and cover are static file paths."""
 
     slug = models.SlugField(unique=True)
     title = models.CharField(max_length=200)

@@ -21,4 +21,6 @@ A `Listener` is created on first visit; its id is stored in the Django session. 
 
 - Adding accounts later = add a nullable `user` FK to `Listener` and attach/merge on login. Per-person tables are untouched.
 - An anonymous Listener is lost when their session expires or cookies are cleared (orphaned rows). Acceptable until accounts exist.
+- Two simultaneous first requests from a new browser can each create a Listener; the session keeps the last, the other is an empty orphan. Harmless (no per-person rows yet), so no locking.
+- Sessions must survive deploys, so they live in Postgres (#23), not an unpersisted Redis.
 - Device-level state (playback position, volume) stays in the browser, not on `Listener`.

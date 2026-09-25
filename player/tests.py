@@ -103,6 +103,7 @@ def test_track_list_full_page_includes_player_and_queue_data(client, catalogue):
     assert response.status_code == 200
     assert 'data-cy="player"' in body
     assert 'id="list-data"' in body
+    assert body.count("<title>") == 1  # partial's <title> is only for htmx swaps
     assert body.count('data-cy="track-row"') == 6
     assert "HX-Request" in response["Vary"]
 
@@ -294,5 +295,5 @@ def test_queue_items_carry_played_url(catalogue):
 @pytest.mark.django_db
 def test_mascot_is_favicon_and_logo(client):
     body = client.get(reverse("player:track_list")).content.decode()
-    assert '<link rel="icon" href="/static/player/pippins.svg"' in body
+    assert '<link rel="icon" href="/static/core/pippins.svg"' in body
     assert 'data-cy="mascot"' in body

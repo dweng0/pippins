@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+{% extends "player/layout.html" %}
 {% load player_tags %}
 {% block title %}{{ list_name }} · Pippins{% endblock %}
 {% block main %}{% partialdef tracks inline %}
-<title>{{ list_name }} · Pippins</title>
+{% if request.htmx %}<title>{{ list_name }} · Pippins</title>{% endif %}{# htmx swaps update document.title from this #}
 <header class="mb-6 flex flex-wrap items-end justify-between gap-4">
   <div>
-    <p class="text-xs uppercase tracking-widest opacity-60">Playlist</p>
+    <p class="text-xs uppercase tracking-widest opacity-60">Library</p>
     <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl" data-cy="list-title">{{ list_name }}</h1>
   </div>
   {% if q is not None %}
