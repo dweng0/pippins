@@ -77,12 +77,8 @@
                 0 8px 28px -6px color-mix(in oklab, var(--color-primary) 55%, transparent);
   }
 
-  /* Stamp 1: wordmark gradient (secondary green-gold -> blush -> rose) */
-  .pip-wordmark {
-    font-weight: 800; letter-spacing: -0.03em;
-    background: linear-gradient(100deg, var(--color-secondary), var(--color-primary) 55%, var(--color-accent));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
+  /* Stamp 1: wordmark, solid blush to match the mascot */
+  .pip-wordmark { font-weight: 800; letter-spacing: -0.03em; color: var(--color-primary); }
   /* Stamp 2: player bar "dusk" wash + blush hairline */
   .pip-player {
     background:

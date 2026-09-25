@@ -297,3 +297,9 @@ def test_mascot_is_favicon_and_logo(client):
     body = client.get(reverse("player:track_list")).content.decode()
     assert '<link rel="icon" href="/static/core/pippins.svg"' in body
     assert 'data-cy="mascot"' in body
+
+
+@pytest.mark.django_db
+def test_hero_mascot_only_on_all_tracks(client):
+    assert 'data-cy="hero-mascot"' in client.get(reverse("player:track_list")).content.decode()
+    assert 'data-cy="hero-mascot"' not in client.get(reverse("player:favourites")).content.decode()

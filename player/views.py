@@ -7,7 +7,7 @@ from .models import Track
 from .services import favourite_tracks, get_listener, recent_tracks, record_play, toggle_favourite
 
 
-def _render_list(request, tracks, list_name, empty_message, q=None):
+def _render_list(request, tracks, list_name, empty_message, q=None, hero=False):
     """Render a track list. htmx nav swaps only #main; the search box swaps only the rows;
     history restores get the full page."""
     tracks = list(tracks)
@@ -23,6 +23,7 @@ def _render_list(request, tracks, list_name, empty_message, q=None):
             "list_name": list_name,
             "empty_message": empty_message,
             "q": q,
+            "hero": hero,
         },
     )
 
@@ -33,7 +34,7 @@ def track_list(request):
     q = request.GET.get("q", "").strip()
     tracks = Track.objects.with_favourite_flag(listener).search(q)
     empty = f"No tracks match \u201c{q}\u201d." if q else "No tracks yet."
-    return _render_list(request, tracks, "All tracks", empty, q=q)
+    return _render_list(request, tracks, "All tracks", empty, q=q, hero=True)
 
 
 @vary_on_headers("HX-Request", "HX-History-Restore-Request")
