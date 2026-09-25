@@ -59,7 +59,38 @@ document.addEventListener("alpine:init", () => {
       });
       audio.addEventListener("loadedmetadata", () => (this.duration = audio.duration));
       window.addEventListener("pagehide", () => this.save());
+      this.bindMediaSession();
       this.restore();
+    },
+
+    // OS lock screen / notification metadata and hardware media keys.
+    bindMediaSession() {
+      if (!("mediaSession" in navigator)) return;
+      const handlers = {
+        play: () => this.play(),
+        pause: () => this.audio.pause(),
+        previoustrack: () => this.prev(),
+        nexttrack: () => this.next(),
+        seekto: (e) => this.seek(e.seekTime),
+      };
+      for (const [action, handler] of Object.entries(handlers)) {
+        try {
+          navigator.mediaSession.setActionHandler(action, handler);
+        } catch {
+          // action not supported by this browser
+        }
+      }
+    },
+
+    updateMediaSession() {
+      if (!("mediaSession" in navigator) || !this.current) return;
+      const t = this.current;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: t.title,
+        artist: t.artist,
+        album: t.album,
+        artwork: [{ src: new URL(t.cover, location.href).href, sizes: "512x512" }],
+      });
     },
 
     save() {
@@ -134,6 +165,7 @@ document.addEventListener("alpine:init", () => {
       this.playReported = false;
       this.duration = this.current.duration || 0;
       this.audio.src = this.current.src;
+      this.updateMediaSession();
       this.save();
       if (autoplay) this.play();
     },
