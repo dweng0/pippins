@@ -72,8 +72,9 @@ DATABASES = {
 }
 
 # Sessions live in Postgres so a deploy doesn't orphan every Listener (ADR-0001, #23).
-# Nothing needs a shared cache yet; per-process LocMem is enough.
-CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+# No cache on purpose: LocMem isn't shared between gunicorn workers, so anything built on it (rate
+# limits, counters) would quietly be per-process. Need one? Use DatabaseCache (createcachetable).
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
 
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 

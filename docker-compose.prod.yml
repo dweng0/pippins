@@ -5,10 +5,12 @@ services:
     restart: unless-stopped
 
   web:
+    # collectstatic already ran in the image build; covers load_tracks extracts are committed
+    # (test_every_embedded_cover_is_committed). prune_listeners on each deploy bounds Listener/session growth.
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py load_tracks &&
-             python manage.py collectstatic --noinput &&
+             python manage.py prune_listeners &&
              gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --worker-class gthread --threads 4"
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.prod
