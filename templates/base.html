@@ -5,13 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Pippins{% endblock %}</title>
   <link href="{% static 'css/app.css' %}" rel="stylesheet">
-  <link rel="icon" href="{% static 'player/covers/placeholder.svg' %}" type="image/svg+xml">
+  <link rel="icon" href="{% static 'player/pippins.svg' %}" type="image/svg+xml">
   <meta name="htmx-config" content='{"historyCacheSize": 0}'>
 </head>
 <body class="min-h-screen bg-base-100 text-base-content" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <div class="flex min-h-screen">
     <aside class="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-6 bg-base-200 p-5 pb-28 md:flex" data-cy="sidebar">
-      <a href="{% url 'player:track_list' %}" class="pip-wordmark text-3xl">Pippins</a>
+      <a href="{% url 'player:track_list' %}" class="flex items-center gap-2" data-cy="brand">
+        <img src="{% static 'player/pippins.svg' %}" alt="" class="size-12" data-cy="mascot">
+        <span class="pip-wordmark text-3xl">Pippins</span>
+      </a>
       <nav>
         <p class="mb-2 text-xs uppercase tracking-widest opacity-50">Library</p>
         <ul class="menu w-full p-0" hx-target="#main" hx-push-url="true" hx-swap="innerHTML transition:true">
@@ -24,7 +27,10 @@
 
     <div class="min-w-0 flex-1">
       <header class="flex items-center justify-between bg-base-200 px-4 py-3 md:hidden">
-        <a href="{% url 'player:track_list' %}" class="pip-wordmark text-2xl">Pippins</a>
+        <a href="{% url 'player:track_list' %}" class="flex items-center gap-1">
+          <img src="{% static 'player/pippins.svg' %}" alt="" class="size-9">
+          <span class="pip-wordmark text-2xl">Pippins</span>
+        </a>
         <nav class="flex gap-1" hx-target="#main" hx-push-url="true" hx-swap="innerHTML transition:true">
           <a href="{% url 'player:track_list' %}" hx-get="{% url 'player:track_list' %}" class="btn btn-ghost btn-sm" data-nav>All</a>
           <a href="{% url 'player:favourites' %}" hx-get="{% url 'player:favourites' %}" class="btn btn-ghost btn-sm" data-nav>Favourites</a>

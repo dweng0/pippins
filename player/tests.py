@@ -211,3 +211,10 @@ def test_recent_is_newest_first_and_deduped(client, catalogue):
 def test_queue_items_carry_played_url(catalogue):
     track = Track.objects.first()
     assert track.as_queue_item()["playedUrl"] == f"/tracks/{track.pk}/played/"
+
+
+@pytest.mark.django_db
+def test_mascot_is_favicon_and_logo(client):
+    body = client.get(reverse("player:track_list")).content.decode()
+    assert '<link rel="icon" href="/static/player/pippins.svg"' in body
+    assert 'data-cy="mascot"' in body
