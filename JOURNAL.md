@@ -91,3 +91,35 @@
 - Push and merge (the slices go through #24, or a follow-up PR). The first deploy after this drops all sessions once (Redis → DB). Run `docker compose ... up -d --remove-orphans` so the old redis container goes away. The box's `deploy.sh` still needs the repo-rename patch (see HANDOFF).
 - #18 playlists on branch `playlists` (unfinished, as the brief allows).
 - Load test audio on the box (README "Measuring it"). This was review item 10, and can't be done locally.
+
+## 2026-09-25 (late afternoon) — Audio measurements, box check
+
+**Done**
+- Measured audio delivery on the live site (edge from a home connection, origin on the box via SSM). Results table in README replaces the "to do" placeholder: `206`/`416` correct, `immutable` 10-year cache, MISS then HIT at the edge, origin p50 TTFB 2.5 ms under 20 concurrent range requests.
+- Checked the box: `deploy.sh` has the repo rename and `curl -L`, auto-deploy runs every 2 min and is on `358b1c7`, no redis container left.
+- Row-click scroll nit: not reproducible after rows became real `<button>`s (#25). Closed as fixed.
+
+**Decisions / why**
+- Measured with parallel `curl` instead of `oha`: `oha` isn't on either machine, and installing tools on the prod box just for this isn't worth it.
+- The "Redis roles" item under earlier Next lists is obsolete: Redis was dropped in #23.
+
+**Next**
+- Stop the AMI's built-in ECS agent on the box (it's not used and restarts on a loop), and fix it in `user_data`/AMI choice on the Phase 2 rebuild.
+- Local dev: after pulling #22, run `load_tracks` (old filenames 404) and `docker compose up -d --remove-orphans` (stale local redis).
+- Submission email; #18 playlists; infra backlog (Phase 2 rebuild, GHCR, backups, Full strict TLS).
+
+## 2026-09-25 (evening) — Multi-persona review fixes (PR on `review-fixes`)
+
+**Done** (one commit per slice)
+- Played endpoint / growth: page views no longer create a Listener or session (first write does); repeat of the latest Play within 30s dropped; history capped at 200 Plays per Listener; bad track ids 404 before a Listener exists; `prune_listeners` (clearsessions + Listeners older than `SESSION_COOKIE_AGE`) runs on each deploy; composite `(listener, -played_at)` index.
+- `is_fav` only from `with_favourite_flag`. Boot `collectstatic` dropped (test guards that every extractable cover is committed). `DummyCache` instead of per-worker LocMem.
+- A11y: heart keeps focus (stable id, htmx restores it), nav `aria-current="page"` + focus to the new heading, search spinner + `role=status` count.
+- JS: pure Queue logic in `queue.js`, 9 `node --test` tests in CI. Cypress now covers Recently played (POST once, shows up) and cross-tab pause/broadcast; both verified by mutating the code.
+- pytest 39, node 9, Cypress 16 locally.
+
+**Decisions / why**
+- No real rate limiter: no shared cache (and adding one for this is heavier than the risk). The endpoint only writes to the caller's own Listener, so forging pollutes only your own history; dedupe + cap bound the storage.
+- Prune by `created_at` works because nothing re-saves the session after `get_listener`; noted in ADR-0001 to revisit with accounts.
+
+**Next**
+- Headless Electron can't decode any of the mp3s ("Couldn't load this track." on every row); check whether that's just Electron or a real-browser issue with the 48 kHz file too.

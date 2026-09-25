@@ -14,6 +14,7 @@ App at http://localhost:8000, health check at `/healthz/`.
 ```
 docker compose exec web pytest
 CYPRESS_BASE_URL=http://localhost:8000 npx cypress run
+npm run test:js   # Queue logic (node --test, no deps)
 ```
 
 ## Stack
@@ -32,7 +33,7 @@ Browser <audio> ──Range──► Cloudflare edge ──(miss only)──► 
 
 - **Seeking** relies on HTTP Range: WhiteNoise answers `206 Partial Content` (tested in `player/tests.py`). `whitenoise.runserver_nostatic` gives dev the same behaviour.
 - **Concurrency at origin:** gunicorn `gthread`, 2 workers × 4 threads, so a long download holds a thread rather than a whole worker. Only edge cache misses reach the box.
-- **Caching:** static names are content-hashed (`CompressedManifestStaticFilesStorage`), so audio, CSS and JS are served `immutable` for a year and a deploy can't leave stale CSS/JS at the edge. Cache hits also keep AWS egress, and therefore cost, at zero. Tested on the prod path (collectstatic + WhiteNoise, no finders) in `player/tests.py`.
+- **Caching:** static names are content-hashed (`CompressedManifestStaticFilesStorage`), so audio, CSS and JS are served `immutable` (10-year `max-age`) and a deploy can't leave stale CSS/JS at the edge. Cache hits also keep AWS egress, and therefore cost, at zero. Tested on the prod path (collectstatic + WhiteNoise, no finders) in `player/tests.py`.
 - **Tracks are ~320 kbps** (≈40 KB/s real-time); browsers buffer ahead, so a play is roughly one 3–7 MB fetch plus small range fetches on seek.
 
 ### Known limitations / next steps
@@ -40,18 +41,30 @@ Browser <audio> ──Range──► Cloudflare edge ──(miss only)──► 
 - At real scale, move audio to object storage with free egress (e.g. Cloudflare R2) so the box serves none of it.
 - Cloudflare free-plan terms around serving large media volumes should be checked before any real traffic.
 
-### Measuring it (to do)
-```
-# edge cache: expect 206, cf-cache-status MISS then HIT, Age increasing
-URL='https://pippins.run/static/player/audio/komiku-bad-guys-hq.mp3'
-curl -s -o /dev/null -D - -H 'Range: bytes=0-1023' "$URL" | grep -iE 'HTTP/|cf-cache-status|age|content-range'
-curl -s -o /dev/null -w 'ttfb=%{time_starttransfer}s total=%{time_total}s\n' "$URL"   # run twice: miss vs hit
+### Measured (2026-09-25)
+One 3.53 MB track (`komiku-bad-guys-hq.<hash>.mp3`). Edge tests ran from a home connection; origin tests ran on the box itself against `localhost` (the origin only accepts Cloudflare ranges).
 
-# throughput: edge vs origin (origin only reachable from Cloudflare ranges, so run the origin test on the box via SSM)
-oha -z 20s -c 20 "$URL"
-oha -z 20s -c 20 'http://localhost/static/player/audio/komiku-bad-guys-hq.mp3'
+| | Result |
+|---|---|
+| Range request | `206`, `Content-Range: bytes 0-1023/3529590`; out-of-range → `416` |
+| Headers | `Cache-Control: public, max-age=315360000, immutable` |
+| Edge, first request (cache-busted URL) | `cf-cache-status: MISS`, TTFB 0.57 s |
+| Edge, repeat | `HIT`, TTFB 0.10–0.31 s, `Age` increasing |
+| Edge, full track | 1.2–1.5 s at 2.4–3.0 MB/s (limited by the client's connection) |
+| Edge, 200 × 64 KB ranges, 20 concurrent | all `206`; TTFB p50 0.40 s / p99 0.74 s; 21 req/s (client-bound) |
+| Origin, 200 × 64 KB ranges, 20 concurrent | all `206`; TTFB p50 2.5 ms / p99 28 ms; 184 req/s (includes curl process start-up on the 1 vCPU box) |
+| Origin, 40 full tracks, 20 concurrent | all `200`; ~500 MB/s over loopback; web container ~38 MB RAM |
+
+Takeaways: the edge serves repeats, so the box sees roughly one request per track per PoP. The origin itself isn't the bottleneck at this scale. Its real limits are the instance's network egress and the AWS egress cost, which is why a cold-cache burst (above) is the case to watch.
+
+Re-run:
 ```
-Results table goes here (req/s, p50/p99 TTFB, MB/s; edge vs origin).
+URL='https://pippins.run/static/player/audio/komiku-bad-guys-hq.d7cd4b852da8.mp3'   # hashed name: take it from the page source
+curl -s -o /dev/null -D - -H 'Range: bytes=0-1023' "$URL" | grep -iE 'HTTP/|cf-cache-status|^age|content-range'
+curl -s -o /dev/null -w 'ttfb=%{time_starttransfer}s total=%{time_total}s\n' "$URL?m=$RANDOM"   # forced MISS
+seq 200 | xargs -P20 -I{} curl -s -o /dev/null -H 'Range: bytes=0-65535' -w '%{http_code} %{time_starttransfer}\n' "$URL"
+# origin, on the box: same URL path on http://localhost with -H 'Host: pippins.run' -H 'X-Forwarded-Proto: https' (else 301 to HTTPS)
+```
 
 ## Design note: synced multi-device playback (Sendspin, #19)
 
