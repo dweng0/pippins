@@ -71,3 +71,23 @@
 - #23 drop Redis (sessions to Postgres; Redis has no volume, so every deploy wipes Listeners).
 - #14 favourites, #11 persistence, #12 search, #13 shuffle, #15 recent, #20 Media Session, #21 multi-tab.
 - Nit: clicking a row scrolls the page slightly. Fill in the README audio measurements after deploy.
+
+## 2026-09-25 (afternoon) — Slices 2+, review fixes, mascot
+
+**Done** (branch `slices`, stacked on `player` / PR #24; one commit per slice)
+- #23 Redis dropped: sessions in Postgres, LocMem cache, healthz DB-only, redis/celery out of compose, CI and requirements.
+- #14 favourites (htmx heart, `/favourites/`), #12 search (htmx, rows-only swap, `?q=`), #15 recently played (`Play` rows, `/recent/`), #13 shuffle, #11 localStorage persistence (restored paused), #20 Media Session, #21 one tab plays at a time (`BroadcastChannel`).
+- #22 audio renamed to slugs; ID3 tags written into the 2 untagged files. #19 Sendspin design note in README.
+- Mascot: the Mooch bunny wearing headphones (`core/static/core/pippins.svg`), used as logo and favicon.
+- PR #24 review fixes: hashed static names (manifest storage) so CSS/JS/audio are immutable and never stale after a deploy; prod static path tested (collectstatic, 206/416); Dockerfile no longer ignores collectstatic failures; `load_catalogue` logs and skips unreadable files; `base.html` is now the site shell only and `player/layout.html` owns the player; ADR-0002 (audio as static files); vocabulary fixes; keyboard-accessible track rows; seek on mobile; scrubbing doesn't fight timeupdate; audio error messages.
+- pytest 29/29, Cypress 11/11 locally; Docker image builds.
+
+**Decisions / why**
+- Tests use plain static storage (autouse fixture); one fixture runs the real manifest + WhiteNoise path. Manifest storage can't resolve names without collectstatic, and `manifest_strict=False` doesn't help (it still hashes from disk).
+- `infra/user_data.sh.tftpl` still says Redis in a comment: editing user_data would force the instance to be replaced.
+- The first-request Listener race is left as is (it only creates a harmless empty orphan); documented in ADR-0001.
+
+**Next**
+- Push and merge (the slices go through #24, or a follow-up PR). The first deploy after this drops all sessions once (Redis → DB). Run `docker compose ... up -d --remove-orphans` so the old redis container goes away. The box's `deploy.sh` still needs the repo-rename patch (see HANDOFF).
+- #18 playlists on branch `playlists` (unfinished, as the brief allows).
+- Load test audio on the box (README "Measuring it"). This was review item 10, and can't be done locally.
