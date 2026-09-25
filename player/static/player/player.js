@@ -1,3 +1,23 @@
+// Device-level state (Queue, position, volume) lives in localStorage, not on the Listener (ADR-0001).
+// Bump the key if the stored shape changes.
+const STORAGE_KEY = "pippins.player.v1";
+
+function readSaved() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY));
+  } catch {
+    return null; // storage disabled (private mode) or corrupt: start fresh
+  }
+}
+
+function writeSaved(state) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // quota / disabled storage: persistence is best effort
+  }
+}
+
 // Global player store: owns the single <audio> element and the Queue (see CONTEXT.md).
 // Loaded before Alpine so the store exists when Alpine initialises.
 document.addEventListener("alpine:init", () => {
@@ -12,6 +32,7 @@ document.addEventListener("alpine:init", () => {
     playReported: false,
     shuffled: false,
     unshuffledQueue: [],
+    lastSavedAt: 0,
 
     get current() {
       return this.queue[this.index] || null;
@@ -27,10 +48,47 @@ document.addEventListener("alpine:init", () => {
         this.playing = true;
         this.reportPlay();
       });
-      audio.addEventListener("pause", () => (this.playing = false));
+      audio.addEventListener("pause", () => {
+        this.playing = false;
+        this.save();
+      });
       audio.addEventListener("ended", () => this.next());
-      audio.addEventListener("timeupdate", () => (this.currentTime = audio.currentTime));
+      audio.addEventListener("timeupdate", () => {
+        this.currentTime = audio.currentTime;
+        if (Date.now() - this.lastSavedAt > 2000) this.save();
+      });
       audio.addEventListener("loadedmetadata", () => (this.duration = audio.duration));
+      window.addEventListener("pagehide", () => this.save());
+      this.restore();
+    },
+
+    save() {
+      this.lastSavedAt = Date.now();
+      writeSaved({
+        queue: this.queue,
+        index: this.index,
+        position: this.audio ? this.audio.currentTime : 0,
+        volume: this.volume,
+        shuffled: this.shuffled,
+        unshuffledQueue: this.unshuffledQueue,
+      });
+    },
+
+    // Restores paused: browsers block autoplay without a user gesture.
+    restore() {
+      const s = readSaved();
+      if (!s || !Array.isArray(s.queue)) return;
+      if (typeof s.volume === "number") this.setVolume(s.volume);
+      this.shuffled = !!s.shuffled;
+      this.unshuffledQueue = Array.isArray(s.unshuffledQueue) ? s.unshuffledQueue : [];
+      this.queue = s.queue;
+      if (!this.queue[s.index]) return;
+      this.load(s.index, false);
+      const position = Number(s.position) || 0;
+      if (position > 0) {
+        this.currentTime = position;
+        this.audio.addEventListener("loadedmetadata", () => (this.audio.currentTime = position), { once: true });
+      }
     },
 
     // Clicking a track snapshots the list it was in as the Queue; later browsing doesn't change it.
@@ -46,6 +104,7 @@ document.addEventListener("alpine:init", () => {
       this.shuffled = !this.shuffled;
       if (this.shuffled) this.shuffle();
       else this.unshuffle();
+      this.save();
     },
 
     shuffle() {
@@ -75,6 +134,7 @@ document.addEventListener("alpine:init", () => {
       this.playReported = false;
       this.duration = this.current.duration || 0;
       this.audio.src = this.current.src;
+      this.save();
       if (autoplay) this.play();
     },
 
@@ -118,7 +178,8 @@ document.addEventListener("alpine:init", () => {
 
     setVolume(v) {
       this.volume = Number(v);
-      this.audio.volume = this.volume;
+      if (this.audio) this.audio.volume = this.volume;
+      this.save();
     },
 
     fmt(seconds) {

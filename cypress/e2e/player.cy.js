@@ -74,6 +74,18 @@ describe("Player", () => {
       });
     });
   });
+
+  it("remembers the track, Queue and volume across reloads (restored paused)", () => {
+    titleOfRow(4).then((title) => {
+      cy.get('[data-cy="track-row"]').eq(4).click();
+      cy.get('[data-cy="volume"]').invoke("val", 0.3).trigger("input");
+      cy.reload();
+      cy.get('[data-cy="now-playing-title"]').should("have.text", title);
+      cy.get('[data-cy="volume"]').should("have.value", "0.3");
+      cy.get('[data-cy="player"] audio').should("have.prop", "paused", true);
+      cy.window().its("Alpine").invoke("store", "player").its("queue").should("have.length", 6);
+    });
+  });
 });
 
 describe("Health check", () => {
