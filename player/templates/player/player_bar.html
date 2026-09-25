@@ -13,6 +13,10 @@
 
     <div class="flex flex-col items-center gap-1">
       <div class="flex items-center gap-2">
+        <button class="btn btn-ghost btn-circle btn-sm" @click="$store.player.toggleShuffle()" aria-label="Shuffle"
+                :aria-pressed="$store.player.shuffled" :class="$store.player.shuffled ? 'text-primary' : 'opacity-60'" data-cy="shuffle">
+          <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+        </button>
         <button class="btn btn-ghost btn-circle btn-sm" @click="$store.player.prev()" aria-label="Previous track" data-cy="prev">
           <svg class="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
         </button>

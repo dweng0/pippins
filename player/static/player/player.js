@@ -10,6 +10,8 @@ document.addEventListener("alpine:init", () => {
     duration: 0,
     volume: 0.8,
     playReported: false,
+    shuffled: false,
+    unshuffledQueue: [],
 
     get current() {
       return this.queue[this.index] || null;
@@ -34,7 +36,36 @@ document.addEventListener("alpine:init", () => {
     // Clicking a track snapshots the list it was in as the Queue; later browsing doesn't change it.
     playFrom(list, id) {
       this.queue = list.slice();
-      this.load(this.queue.findIndex((t) => t.id === id), true);
+      this.index = this.queue.findIndex((t) => t.id === id);
+      if (this.shuffled) this.shuffle();
+      this.load(this.index, true);
+    },
+
+    // Shuffle reorders the Queue with the current track first; unshuffle restores the original order.
+    toggleShuffle() {
+      this.shuffled = !this.shuffled;
+      if (this.shuffled) this.shuffle();
+      else this.unshuffle();
+    },
+
+    shuffle() {
+      this.unshuffledQueue = this.queue.slice();
+      const rest = this.queue.filter((_, i) => i !== this.index);
+      for (let i = rest.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [rest[i], rest[j]] = [rest[j], rest[i]];
+      }
+      const current = this.queue[this.index];
+      this.queue = current ? [current, ...rest] : rest;
+      this.index = current ? 0 : -1;
+    },
+
+    unshuffle() {
+      if (!this.unshuffledQueue.length) return;
+      const id = this.currentId;
+      this.queue = this.unshuffledQueue;
+      this.unshuffledQueue = [];
+      this.index = this.queue.findIndex((t) => t.id === id);
     },
 
     load(i, autoplay) {

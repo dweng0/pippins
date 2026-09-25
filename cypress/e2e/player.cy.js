@@ -54,6 +54,26 @@ describe("Player", () => {
     cy.get('[data-cy="next"]').click(); // last of the filtered Queue: stays put
     cy.get('[data-cy="now-playing-artist"]').should("have.text", "Komiku");
   });
+
+  it("shuffle keeps the current track first and unshuffle restores the order", () => {
+    cy.get('[data-cy="track-row"]').eq(3).click();
+    cy.window().then((win) => {
+      const store = win.Alpine.store("player");
+      const original = store.queue.map((t) => t.id);
+      const current = store.currentId;
+      cy.get('[data-cy="shuffle"]').click().should("have.attr", "aria-pressed", "true");
+      cy.wrap(null).then(() => {
+        expect(store.queue[0].id).to.eq(current);
+        expect(store.currentId).to.eq(current);
+        expect([...store.queue.map((t) => t.id)].sort()).to.deep.eq([...original].sort());
+      });
+      cy.get('[data-cy="shuffle"]').click().should("have.attr", "aria-pressed", "false");
+      cy.wrap(null).then(() => {
+        expect(store.queue.map((t) => t.id)).to.deep.eq(original);
+        expect(store.currentId).to.eq(current);
+      });
+    });
+  });
 });
 
 describe("Health check", () => {
