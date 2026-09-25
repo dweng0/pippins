@@ -104,6 +104,57 @@ describe("Player", () => {
     cy.get('[data-cy="player-error"]').should("be.visible").and("contain", "Couldn't load this track.");
   });
 
+  it("playing a track reports it once and it shows up in Recently played", () => {
+    cy.intercept("POST", "/tracks/*/played/").as("played");
+    titleOfRow(3).then((title) => {
+      cy.get('[data-cy="track-row"]').eq(3).find('[data-cy="track-play"]').click();
+      cy.wait("@played").its("response.statusCode").should("eq", 204);
+      cy.get('[data-cy="nav-recent"]').click();
+      cy.location("pathname").should("eq", "/recent/");
+      cy.get('[data-cy="track-row"]').should("have.length", 1).and("contain", title);
+    });
+    cy.get("@played.all").should("have.length", 1);
+  });
+
+  // Headless Electron can't decode the audio, so drive the <audio> element's events directly.
+  it("starting playback in another tab pauses this one, and this tab tells the others", () => {
+    cy.get('[data-cy="track-play"]').eq(0).click();
+    cy.get('[data-cy="player"] audio').then(([audio]) => {
+      const win = audio.ownerDocument.defaultView;
+      const otherTab = new win.BroadcastChannel("pippins-player");
+      const heard = [];
+      otherTab.onmessage = (e) => heard.push(e.data);
+
+      audio.dispatchEvent(new win.Event("play"));
+      cy.wrap(heard).should("deep.include", { type: "playing" });
+
+      Object.defineProperty(audio, "paused", { configurable: true, get: () => false });
+      const pause = cy.stub(audio, "pause");
+      cy.wrap(null).then(() => otherTab.postMessage({ type: "playing" }));
+      cy.wrap(pause).should("have.been.calledOnce");
+      cy.wrap(null).then(() => otherTab.close());
+    });
+  });
+
+  it("nav marks the current page and moves focus to the new list's heading", () => {
+    cy.get('[data-cy="nav-all"]').should("have.attr", "aria-current", "page");
+    cy.get('[data-cy="nav-favourites"]').click();
+    cy.get('[data-cy="list-title"]').should("contain", "Favourites").and("have.focus");
+    cy.get('[data-cy="nav-favourites"]').should("have.attr", "aria-current", "page");
+    cy.get('[data-cy="nav-all"]').should("not.have.attr", "aria-current");
+  });
+
+  it("hearting keeps keyboard focus on the heart", () => {
+    cy.get('[data-cy="fav"]').eq(1).focus().type("{enter}");
+    cy.get('[data-cy="fav"]').eq(1).should("have.attr", "data-fav", "true");
+    cy.focused().should("have.attr", "data-cy", "fav").and("have.attr", "data-fav", "true");
+  });
+
+  it("search announces the new result count", () => {
+    cy.get('[data-cy="search"]').type("komiku");
+    cy.get('[data-cy="list-status"]').should("have.attr", "role", "status").and("have.text", "2 tracks");
+  });
+
   it("seek and volume are available on a phone-sized screen", () => {
     cy.viewport("iphone-x");
     cy.get('[data-cy="seek"]').should("be.visible");

@@ -270,14 +270,31 @@ function csrfToken() {
   }
 }
 
-// The sidebar isn't re-rendered by htmx nav, so its highlight follows the URL here.
+// The sidebar isn't re-rendered by htmx nav, so its highlight (and aria-current) follows the URL here.
 function markActiveNav() {
   document.querySelectorAll("[data-nav]").forEach((a) => {
     const active = a.pathname === location.pathname;
     a.classList.toggle("menu-active", active);
     a.classList.toggle("btn-active", active);
+    if (active) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
   });
 }
 document.addEventListener("DOMContentLoaded", markActiveNav);
 document.addEventListener("htmx:pushedIntoHistory", markActiveNav);
 document.addEventListener("htmx:historyRestore", markActiveNav);
+
+document.addEventListener("htmx:afterSettle", (e) => {
+  const target = e.detail.target;
+  // Nav swapped #main: without this, focus stays on the nav link and nothing says the page changed.
+  if (target.id === "main") {
+    const heading = target.querySelector('[data-cy="list-title"]');
+    if (heading) heading.focus({ preventScroll: true });
+  }
+  // Search swapped the rows: announce the new count ("2 tracks").
+  if (target.id === "track-rows") {
+    const status = document.getElementById("list-status");
+    const count = target.querySelector('[data-cy="track-count"]');
+    if (status && count) status.textContent = count.textContent;
+  }
+});
